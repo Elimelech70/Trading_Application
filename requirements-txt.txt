@@ -1,0 +1,42 @@
+# Trading System Requirements
+# Version: 1.0.0
+# Date: 2025-06-20
+# Description: Comprehensive requirements for all trading system services
+
+# Core Web Framework
+flask==2.3.2
+werkzeug==2.3.6
+
+# HTTP and API
+requests==2.31.0
+urllib3==2.0.3
+
+# Financial Data
+yfinance==0.2.18
+pandas-ta==0.3.14b0
+
+# Data Processing
+pandas==2.0.3
+numpy==1.24.3
+
+# System Monitoring
+psutil==5.9.5
+
+# Configuration
+python-dotenv==1.0.0
+
+# Display and Formatting
+tabulate==0.9.0
+
+# Date/Time Handling
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Additional Dependencies (discovered during troubleshooting)
+certifi==2023.5.7
+charset-normalizer==3.1.0
+idna==3.4
+six==1.16.0
+
+# Optional: WSGI Server (not required for basic operation)
+# waitress==2.1.2
