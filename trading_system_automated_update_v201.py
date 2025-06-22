@@ -150,7 +150,7 @@ class WhatsNextTaskList:
                 ])
                 
             elif "Preparation" in phase_name:
-                backup_path = context.get('backup_path', '/content/backups/backup_[timestamp]')
+                backup_path = context.get('backup_path', './backups/backup_[timestamp]')
                 task_list.extend([
                     "✅ System prepared and backed up",
                     "",

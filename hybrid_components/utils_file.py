@@ -193,7 +193,7 @@ def check_system_requirements() -> Dict[str, bool]:
     ]
     
     all_services_exist = all(
-        Path(f'/content/trading_system/{f}').exists() 
+        Path(f'/conten./{f}').exists() 
         for f in service_files
     )
     requirements['all_services'] = all_services_exist

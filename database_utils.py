@@ -25,7 +25,7 @@ _db_lock = threading.Lock()
 class DatabaseManager:
     """Centralized database management with retry logic and WAL mode"""
     
-    def __init__(self, db_path: str = '/content/trading_system.db'):
+    def __init__(self, db_path: str = './trading_system.db'):
         self.db_path = db_path
         self.logger = logging.getLogger(self.__class__.__name__)
         
@@ -205,7 +205,7 @@ class DatabaseManager:
 _db_manager = None
 
 
-def get_database_manager(db_path: str = '/content/trading_system.db') -> DatabaseManager:
+def get_database_manager(db_path: str = './trading_system.db') -> DatabaseManager:
     """Get or create the global database manager instance"""
     global _db_manager
     
@@ -217,7 +217,7 @@ def get_database_manager(db_path: str = '/content/trading_system.db') -> Databas
 
 # Convenience functions for backward compatibility
 @contextmanager
-def get_db_connection(db_path: str = '/content/trading_system.db'):
+def get_db_connection(db_path: str = './trading_system.db'):
     """Get a database connection with automatic retry and cleanup"""
     manager = get_database_manager(db_path)
     with manager.get_connection() as conn:
@@ -225,14 +225,14 @@ def get_db_connection(db_path: str = '/content/trading_system.db'):
 
 
 def execute_with_retry(query: str, params: Optional[Tuple] = None, 
-                      db_path: str = '/content/trading_system.db') -> Optional[sqlite3.Cursor]:
+                      db_path: str = './trading_system.db') -> Optional[sqlite3.Cursor]:
     """Execute a query with automatic retry logic"""
     manager = get_database_manager(db_path)
     return manager.execute_with_retry(query, params)
 
 
 def save_with_retry(table: str, data: dict, 
-                   db_path: str = '/content/trading_system.db') -> Optional[int]:
+                   db_path: str = './trading_system.db') -> Optional[int]:
     """Save data to table with automatic retry logic"""
     manager = get_database_manager(db_path)
     return manager.insert_with_retry(table, data)
@@ -242,7 +242,7 @@ def save_with_retry(table: str, data: dict,
 class DatabaseServiceMixin:
     """Mixin class for services to use database utilities"""
     
-    def __init__(self, db_path: str = '/content/trading_system.db'):
+    def __init__(self, db_path: str = './trading_system.db'):
         self.db_manager = get_database_manager(db_path)
         self.db_path = db_path
     

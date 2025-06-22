@@ -8,8 +8,8 @@ python3 diagnostic_toolkit.py --service pattern --report && echo "Report saved t
 
 These 4 options require it to have the following format (expample shows the full i.e no parameter like --quick):
 
-!cd /content/trading_system/Diagnosis && python3 diagnostic_toolkit.py
+!cd /conten./Diagnosis && python3 diagnostic_toolkit.py
 
 '''
 
-!cd /content/trading_system/Diagnosis && python3 diagnostic_toolkit.py
+!cd /conten./Diagnosis && python3 diagnostic_toolkit.py

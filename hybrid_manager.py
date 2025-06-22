@@ -154,7 +154,6 @@ class ServiceManager:
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd="./trading_system"
             )
             
             service["process"] = process

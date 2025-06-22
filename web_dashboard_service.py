@@ -42,12 +42,12 @@ class WebDashboardService:
         
     def _setup_logging(self):
         import os
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('WebDashboardService')
         
-        handler = logging.FileHandler('/content/logs/web_dashboard_service.log')
+        handler = logging.FileHandler('./logs/web_dashboard_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
