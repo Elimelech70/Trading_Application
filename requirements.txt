@@ -1,42 +1,24 @@
 # Trading System Requirements
-# Version: 1.0.0
-# Date: 2025-06-20
-# Description: Comprehensive requirements for all trading system services
-
-# Core Web Framework
-flask==2.3.2
-werkzeug==2.3.6
-
-# HTTP and API
+# Version: 2.0.0
+# Date: 2025-06-22
+# Description: Comprehensive requirements for all trading system services running in GitHub Codespace
+ 
+# Core dependencies
+flask==3.0.0
 requests==2.31.0
-urllib3==2.0.3
-
-# Financial Data
-yfinance==0.2.18
-pandas-ta==0.3.14b0
-
-# Data Processing
-pandas==2.0.3
-numpy==1.24.3
-
-# System Monitoring
-psutil==5.9.5
-
-# Configuration
-python-dotenv==1.0.0
-
-# Display and Formatting
-tabulate==0.9.0
-
-# Date/Time Handling
+pandas==2.1.4
+numpy==1.26.2
+scikit-learn==1.3.2
+yfinance==0.2.33
+psutil==5.9.6
 python-dateutil==2.8.2
 pytz==2023.3
+beautifulsoup4==4.12.2
+lxml==4.9.3
 
-# Additional Dependencies (discovered during troubleshooting)
-certifi==2023.5.7
-charset-normalizer==3.1.0
-idna==3.4
-six==1.16.0
+# Alpaca Trading (install separately if needed)
+# alpaca-py==0.21.1
 
-# Optional: WSGI Server (not required for basic operation)
-# waitress==2.1.2
+# Development tools
+setuptools>=69.0.0
+wheel>=0.42.0
