@@ -39,7 +39,7 @@ except Exception as e:
     YFINANCE_AVAILABLE = False
 
 class SecurityScannerService:
-    def __init__(self, db_path='/content/trading_system.db'):
+    def __init__(self, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.db_path = db_path
         self.logger = self._setup_logging()
@@ -59,12 +59,12 @@ class SecurityScannerService:
         
     def _setup_logging(self):
         import os
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('SecurityScannerService')
         
-        handler = logging.FileHandler('/content/logs/security_scanner.log')
+        handler = logging.FileHandler('./logs/security_scanner.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)

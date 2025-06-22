@@ -47,7 +47,7 @@ except ImportError:
     logging.warning("Scikit-learn not available, using rule-based signals only")
 
 class TechnicalAnalysisService:
-    def __init__(self, db_path='/content/trading_system.db'):
+    def __init__(self, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.db_path = db_path
         self.logger = self._setup_logging()
@@ -64,12 +64,12 @@ class TechnicalAnalysisService:
         
     def _setup_logging(self):
         import os
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('TechnicalAnalysisService')
         
-        handler = logging.FileHandler('/content/logs/technical_analysis_service.log')
+        handler = logging.FileHandler('./logs/technical_analysis_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)

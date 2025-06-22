@@ -49,7 +49,7 @@ class TradingSystemDiagnosticToolkit:
         self.process_diagnostic = ProcessPortDiagnostic()
         
         # Output directory
-        self.output_dir = Path('/content/diagnostic_reports')
+        self.output_dir = Path('./diagnostic_reports')
         self.output_dir.mkdir(exist_ok=True)
     
     def run_comprehensive_diagnostic(self, options: Dict) -> Dict:

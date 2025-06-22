@@ -6,7 +6,7 @@ Version: 1.0.5
 Last Updated: 2025-06-20
 
 REVISION HISTORY:
-- v1.0.6 (2025-06-20) db_path /content/trading_database.db
+- v1.0.6 (2025-06-20) db_path ./trading_database.db
 - v1.0.5 (2025-06-20) - Fixed verify_schema connection handling, ensured consistent table naming
 - v1.0.4 (2025-06-19) - Enhanced startup coordination and health check improvements  
 - v1.0.3 (2025-06-17) - Initial database schema with comprehensive trading tables
@@ -37,8 +37,8 @@ logging.basicConfig(
 logger = logging.getLogger('database_migration')
 
 class DatabaseMigration:
-    def __init__(self, db_path='/content/trading_system.db'):
-        self.db_path = '/content/trading_system.db'
+    def __init__(self, db_path='./trading_system.db'):
+        self.db_path = './trading_system.db'
         self.tables_created = []
         
     def create_connection(self):

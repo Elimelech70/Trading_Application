@@ -54,7 +54,7 @@ except ImportError:
     print("Warning: database_utils not found, using direct SQLite connections")
 
 class NewsService(DatabaseServiceMixin if USE_DB_UTILS else object):
-    def __init__(self, db_path='/content/trading_system.db'):
+    def __init__(self, db_path='./trading_system.db'):
         if USE_DB_UTILS:
             super().__init__(db_path)
         else:

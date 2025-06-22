@@ -33,7 +33,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -75,9 +75,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)

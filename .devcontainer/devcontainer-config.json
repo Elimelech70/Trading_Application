@@ -1,0 +1,43 @@
+{
+  "name": "Trading Application",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "forwardPorts": [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009, 5011, 8080],
+  "portsAttributes": {
+    "5000": {"label": "Coordination Service"},
+    "5001": {"label": "Security Scanner"},
+    "5002": {"label": "Pattern Analysis"},
+    "5003": {"label": "Technical Analysis"},
+    "5005": {"label": "Paper Trading"},
+    "5006": {"label": "Pattern Recognition"},
+    "5008": {"label": "News Service"},
+    "5009": {"label": "Reporting Service"},
+    "5011": {"label": "Trading Scheduler"},
+    "8080": {"label": "Web Dashboard", "onAutoForward": "openBrowser"}
+  },
+  "postCreateCommand": "pip install -r requirements.txt && python setup_codespace.py",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-toolsai.jupyter"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "python.terminal.activateEnvironment": true
+      }
+    }
+  },
+  "remoteEnv": {
+    "PYTHONPATH": "${containerWorkspaceFolder}"
+  }
+}

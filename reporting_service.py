@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify
 from typing import Dict, List, Optional
 
 class ReportingService:
-    def __init__(self, db_path='/content/trading_system.db'):
+    def __init__(self, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.db_path = db_path
         self.logger = self._setup_logging()
@@ -27,12 +27,12 @@ class ReportingService:
         
     def _setup_logging(self):
         import os
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('ReportingService')
         
-        handler = logging.FileHandler('/content/logs/reporting_service.log')
+        handler = logging.FileHandler('./logs/reporting_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)

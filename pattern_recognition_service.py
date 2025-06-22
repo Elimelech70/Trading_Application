@@ -49,7 +49,7 @@ except Exception as e:
     YFINANCE_AVAILABLE = False
 
 class PatternRecognitionService(DatabaseServiceMixin if USE_DB_UTILS else object):
-    def __init__(self, db_path='/content/trading_system.db'):
+    def __init__(self, db_path='./trading_system.db'):
         # Initialize database utilities if available
         if USE_DB_UTILS:
             super().__init__(db_path)
@@ -65,12 +65,12 @@ class PatternRecognitionService(DatabaseServiceMixin if USE_DB_UTILS else object
         
     def _setup_logging(self):
         import os
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('PatternRecognitionService')
         
-        handler = logging.FileHandler('/content/logs/pattern_recognition_service.log')
+        handler = logging.FileHandler('./logs/pattern_recognition_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)

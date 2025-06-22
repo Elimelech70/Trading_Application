@@ -55,7 +55,7 @@ class ServiceManager:
             {"name": "web_dashboard", "port": 8080, "process": None, "status": "Stopped", "critical": False, "startup_delay": 3}
         ]
         self.monitoring_active = False
-        self.db_path = "/content/trading_system.db"
+        self.db_path = "./trading_system.db"
         self.running = True
         
         # Set up signal handlers
@@ -117,7 +117,7 @@ class ServiceManager:
     def run_database_migration(self):
         """Run database migration if needed"""
         try:
-            migration_path = Path("/content/trading_system/database_migration.py")
+            migration_path = Path("./database_migration.py")
             if migration_path.exists():
                 result = subprocess.run([sys.executable, str(migration_path)], 
                                       capture_output=True, text=True)
@@ -145,16 +145,16 @@ class ServiceManager:
             
             # Build command based on service name
             if service["name"] == "web_dashboard":
-                cmd = [sys.executable, f"/content/trading_system/web_dashboard_service.py"]
+                cmd = [sys.executable, f"./web_dashboard_service.py"]
             else:
-                cmd = [sys.executable, f"/content/trading_system/{service['name']}.py"]
+                cmd = [sys.executable, f"./{service['name']}.py"]
                 
             # Start the process
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd="/content/trading_system"
+                cwd="./trading_system"
             )
             
             service["process"] = process
