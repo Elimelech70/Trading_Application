@@ -1,0 +1,178 @@
+PROJECT FILE INDEX
+================================================================================
+Repository: Elimelech70/Trading_Application
+Branch: main
+Total files indexed: 51
+================================================================================
+
+
+CONFIGURATION
+-------------
+
+File: ./.devcontainer/devcontainer-config.json
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/devcontainer/devcontainer-config.json
+
+File: ./Config_Codespacd.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Config_Codespacd.py
+
+File: ./hybrid_components/config_manager.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_components/config_manager.py
+
+DOCUMENTATION
+-------------
+
+File: ./README.md
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/README.md
+
+File: ./project_documentation/TRADING SYSTEM PROJECT METHODOLOGY.md
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/TRADING SYSTEM PROJECT METHODOLOGY.md
+
+File: ./project_documentation/Trading Application Architecturec.md
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/Trading Application Architecturec.md
+
+File: ./project_documentation/Trading System Functional Specification - Service Classes and Procedures.md
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/Trading System Functional Specification - Service Classes and Procedures.md
+
+File: ./requirements.txt
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/requirements.txt
+
+PYTHON FILES
+------------
+
+File: ./Diagnosis/Diagnosis_Full_Reporting.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/Diagnosis_Full_Reporting.py
+
+File: ./Diagnosis/Run_Diagnosis_Toolkit.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/Run_Diagnosis_Toolkit.py
+
+File: ./Diagnosis/diagnostic_log_analysis.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/diagnostic_log_analysis.py
+
+File: ./Diagnosis/diagnostic_process_ports.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/diagnostic_process_ports.py
+
+File: ./Diagnosis/diagnostic_toolkit.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/diagnostic_toolkit.py
+
+File: ./Diagnosis/diagnostic_toolkit_v101.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/diagnostic_toolkit_v101.py
+
+File: ./Diagnosis/setup_diagnostic_toolkit_v106.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/setup_diagnostic_toolkit_v106.py
+
+File: ./Google_drive_auth.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Google_drive_auth.py
+
+File: ./Startup/enhanced_startup_manager_v201.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Startup/enhanced_startup_manager_v201.py
+
+File: ./create_project_index.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/create_project_index.py
+
+File: ./create_project_snapshot.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/create_project_snapshot.py
+
+File: ./database_migration.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/database_migration.py
+
+File: ./diagnose-paths.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/diagnose-paths.py
+
+File: ./diagnostic_toolkit.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/diagnostic_toolkit.py
+
+File: ./fix_coord.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/fix_coord.py
+
+File: ./hybrid_components/lifecycle_manager.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_components/lifecycle_manager.py
+
+File: ./hybrid_components/monitoring_engine.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_components/monitoring_engine.py
+
+File: ./hybrid_components/recovery_manager.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_components/recovery_manager.py
+
+File: ./hybrid_manager.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_manager.py
+
+File: ./install-requirements.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/install-requirements.py
+
+File: ./make_web.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/make_web.py
+
+File: ./paper_trading.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/paper_trading.py
+
+File: ./pattern_analysis.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/pattern_analysis.py
+
+File: ./security_scanner.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/security_scanner.py
+
+File: ./setup_codespace.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/setup_codespace.py
+
+File: ./technical_analysis.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/technical_analysis.py
+
+File: ./trading_scheduler.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/trading_scheduler.py
+
+File: ./trading_system_automated_update_v201.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/trading_system_automated_update_v201.py
+
+File: ./updates/TRADING_SYSTEM_AUTOMATED_UPDATE_PROCESS.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/updates/TRADING_SYSTEM_AUTOMATED_UPDATE_PROCESS.py
+
+SERVICES
+--------
+
+File: ./Diagnosis/diagnostic_service_integration.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Diagnosis/diagnostic_service_integration.py
+
+File: ./coordination_service.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/coordination_service.py
+
+File: ./coordination_service_backup_20250622_133933.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/coordination_service_backup_20250622_133933.py
+
+File: ./coordination_service_backup_20250622_134230.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/coordination_service_backup_20250622_134230.py
+
+File: ./coordination_service_v105.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/coordination_service_v105.py
+
+File: ./google_drive_service.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/google_drive_service.py
+
+File: ./hybrid_components/service_manager.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_components/service_manager.py
+
+File: ./news_service.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/news_service.py
+
+File: ./pattern_recognition_service.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/pattern_recognition_service.py
+
+File: ./reporting_service.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/reporting_service.py
+
+File: ./web_dashboard_service.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/web_dashboard_service.py
+
+TESTS
+-----
+
+File: ./Test.txt
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Test.txt
+
+UTILITIES
+---------
+
+File: ./database_utils.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/database_utils.py
+
+File: ./hybrid_components/utils_file.py
+URL: https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/hybrid_components/utils_file.py
