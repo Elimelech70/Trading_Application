@@ -18,6 +18,7 @@ Integrates with news service for sentiment analysis
 Fixed to handle yfinance websockets dependency issues gracefully
 """
 
+import time
 import requests
 import logging
 import sqlite3

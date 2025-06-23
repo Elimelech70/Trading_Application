@@ -1,10 +1,8 @@
 """
 Name of Service: TRADING SYSTEM PHASE 1 - PAPER TRADING
-Version: 1.0.4
-Last Updated: 2025-06-23
+Version: 1.0.2
+Last Updated: 2025-06-15
 REVISION HISTORY:
-v1.0.4 (2025-06-23) - Fixed Jupyter notebook syntax error, improved import handling
-v1.0.3 (2025-06-23) - Added dotenv support to load .env file
 v1.0.2 (2025-06-15) - Updated to use ALPACA_PAPER_API_KEY and ALPACA_PAPER_API_SECRET environment variables
 v1.0.1 (2025-06-15) - Updated header format and moved API credentials to environment variables
 v1.0.0 (2025-06-15) - Initial release with Alpaca paper trading integration
@@ -14,7 +12,6 @@ Receives trading signals and executes them via Alpaca
 """
 
 import os
-from dotenv import load_dotenv
 import requests
 import logging
 import sqlite3
@@ -23,17 +20,13 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from typing import Dict, List, Optional
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Try to import Alpaca API
+# Note: You'll need to install alpaca-trade-api
+# !pip install alpaca-trade-api
 try:
     import alpaca_trade_api as tradeapi
     ALPACA_AVAILABLE = True
 except ImportError:
     ALPACA_AVAILABLE = False
-    print("Warning: alpaca-trade-api not installed. Run: pip install alpaca-trade-api")
-    print("Service will run in simulation mode.")
 
 class PaperTradingService:
     def __init__(self, db_path='./trading_system.db'):
