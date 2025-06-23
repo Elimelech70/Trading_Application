@@ -83,16 +83,16 @@ class ServiceManager:
             
             # List of required tables from v3.0.2
             required_tables = [
-                'service_coordination',
-                'trading_schedule_config',
-                'news_sentiment',
+                'service_registry',
+                'trading_schedule',
+                'news_articles',
                 'technical_indicators',
-                'pattern_analysis',
-                'technical_indicators',
-                'orders',
+                'patterns',
+                'signals',
+                'trades',
                 'risk_metrics',
                 'ml_predictions',
-                'trading_cycles'
+                'system_events'
             ]
             
             # Check each table
