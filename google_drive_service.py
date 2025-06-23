@@ -20,7 +20,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Optional, Any, List
 from datetime import datetime
-from google.colab import userdata
+# from google.colab import userdata  # Removed for Codespace
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2.service_account import Credentials
@@ -44,7 +44,7 @@ class GoogleDriveService:
         self.subfolders = [
             'data', 'models', 'logs', 'config', 
             'backups', 'reports', 'coordination', 
-            'project_documentation', 'updates'
+            'Documentation', 'updates'
         ]
         
         # Initialize service

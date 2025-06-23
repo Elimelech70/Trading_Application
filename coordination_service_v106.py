@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 TRADING SYSTEM PHASE 1
-Service: coordination_service_v105.py
-Version: 1.0.5
+Service: coordination_service_v106.py
+Version: 1.0.6
 Last Updated: 2025-06-22
 
 REVISION HISTORY:
+- v1.0.6 (2025-06-22) - Made paths environment-agnostic, works in any directory
 - v1.0.5 (2025-06-22) - Fixed schema mismatch: use host/port from service_coordination table
 - v1.0.4 (2025-06-20) - Fixed table name mismatch (use service_coordination not service_registry)
 - v1.0.3 (2025-06-19) - Added trading schedule endpoints for automated trading
@@ -16,7 +17,7 @@ REVISION HISTORY:
 PURPOSE:
 Coordination Service - Central orchestrator for all trading system services
 Manages service discovery, workflow coordination, and health monitoring
-Fixed to match actual database schema from database_migration.py
+Now works in any environment (Colab, Codespaces, local, etc.)
 """
 
 import os
@@ -29,6 +30,7 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from typing import Dict, List, Optional
 import time
+from pathlib import Path
 
 # Try to import database utilities
 try:
@@ -39,15 +41,34 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='./trading_system.db'):
+    def __init__(self, port=5000, db_path=None):
         self.app = Flask(__name__)
         self.port = port
-        self.db_path = db_path
+        
+        # Determine paths based on environment
+        self.base_dir = Path.cwd()  # Current working directory
+        
+        # Set database path
+        if db_path:
+            self.db_path = db_path
+        else:
+            # Look for existing database or create in current directory
+            if Path('./trading_system.db').exists():
+                self.db_path = './trading_system.db'
+            elif (self.base_dir / 'trading_system.db').exists():
+                self.db_path = str(self.base_dir / 'trading_system.db')
+            else:
+                self.db_path = str(self.base_dir / 'trading_system.db')
+        
+        print(f"Using database: {self.db_path}")
+        
+        # Setup logging with environment-appropriate paths
+        self.log_dir = self.base_dir / 'logs'
         self.logger = self._setup_logging()
         
         # Initialize database utilities if available
         if USE_DB_UTILS:
-            self.db_manager = DatabaseManager(db_path)
+            self.db_manager = DatabaseManager(self.db_path)
         
         # Service registry - in memory for fast access
         self.service_registry = {}
@@ -77,16 +98,20 @@ class CoordinationService:
         self._start_background_tasks()
         
     def _setup_logging(self):
+        """Setup logging with environment-appropriate paths"""
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('CoordinationService')
         
-        # Create logs directory if it doesn't exist
-        os.makedirs('./logs', exist_ok=True)
+        # Create logs directory in current working directory
+        self.log_dir.mkdir(exist_ok=True)
         
-        handler = logging.FileHandler('./logs/coordination_service.log')
+        log_file = self.log_dir / 'coordination_service.log'
+        handler = logging.FileHandler(str(log_file))
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
+        
+        logger.info(f"Logging to: {log_file}")
         
         return logger
     
@@ -238,7 +263,15 @@ class CoordinationService:
         
         @self.app.route('/health', methods=['GET'])
         def health():
-            return jsonify({'status': 'healthy', 'service': 'coordination'}), 200
+            return jsonify({
+                'status': 'healthy', 
+                'service': 'coordination',
+                'environment': {
+                    'base_dir': str(self.base_dir),
+                    'log_dir': str(self.log_dir),
+                    'db_path': self.db_path
+                }
+            }), 200
             
         @self.app.route('/register', methods=['POST'])
         def register_service():
@@ -526,6 +559,9 @@ class CoordinationService:
     def run(self):
         """Start the Flask application"""
         self.logger.info(f"Starting Coordination Service on port {self.port}")
+        self.logger.info(f"Working directory: {self.base_dir}")
+        self.logger.info(f"Database path: {self.db_path}")
+        self.logger.info(f"Log directory: {self.log_dir}")
         self.app.run(host='0.0.0.0', port=self.port, debug=False)
 
 if __name__ == "__main__":

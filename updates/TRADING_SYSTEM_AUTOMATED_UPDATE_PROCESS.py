@@ -159,7 +159,7 @@ Automated update process executing approved implementation plan.
             self.drive_service.write_file(
                 self.diary_filename,
                 content.encode('utf-8'),
-                'project_documentation',
+                'Documentation',
                 mime_type='text/markdown'
             )
         else:
@@ -376,7 +376,7 @@ class TradingSystemUpdater:
             self.update_path,
             self.temp_path,
             self.base_path / 'logs',
-            self.base_path / 'project_documentation'
+            self.base_path / 'Documentation'
         ]
         
         for directory in directories:
@@ -572,8 +572,8 @@ class TradingSystemUpdater:
                     source_locations = [
                         self.update_path / source,
                         self.temp_path / source,
-                        self.base_path / 'project_documentation' / source,
-                        Path(f'/content/drive/MyDrive/TradingSystem/project_documentation/{source}')
+                        self.base_path / 'Documentation' / source,
+                        Path(f'/content/drive/MyDrive/TradingSystem/Documentation/{source}')
                     ]
                     
                     source_found = None
@@ -756,7 +756,7 @@ def main():
                 drive_service = get_drive_service()
                 
                 # Try to read plan from Google Drive
-                plan_content = drive_service.read_file(args.plan, 'project_documentation')
+                plan_content = drive_service.read_file(args.plan, 'Documentation')
                 if not plan_content:
                     print(f"❌ Implementation plan not found in Google Drive: {args.plan}")
                     return_code = 1
@@ -794,7 +794,7 @@ def main():
                     return_code = 1
                 else:
                     # Reload implementation plan
-                    plan_content = drive_service.read_file(state['plan_name'], 'project_documentation')
+                    plan_content = drive_service.read_file(state['plan_name'], 'Documentation')
                     if not plan_content:
                         print(f"❌ Original plan not found: {state['plan_name']}")
                         return_code = 1
@@ -1028,7 +1028,7 @@ Automated update process executing approved implementation plan.
             self.drive_service.write_file(
                 self.diary_filename,
                 content.encode('utf-8'),
-                'project_documentation',
+                'Documentation',
                 mime_type='text/markdown'
             )
         else:
@@ -1245,7 +1245,7 @@ class TradingSystemUpdater:
             self.update_path,
             self.temp_path,
             self.base_path / 'logs',
-            self.base_path / 'project_documentation'
+            self.base_path / 'Documentation'
         ]
         
         for directory in directories:
@@ -1441,8 +1441,8 @@ class TradingSystemUpdater:
                     source_locations = [
                         self.update_path / source,
                         self.temp_path / source,
-                        self.base_path / 'project_documentation' / source,
-                        Path(f'/content/drive/MyDrive/TradingSystem/project_documentation/{source}')
+                        self.base_path / 'Documentation' / source,
+                        Path(f'/content/drive/MyDrive/TradingSystem/Documentation/{source}')
                     ]
                     
                     source_found = None
@@ -1625,7 +1625,7 @@ def main():
                 drive_service = get_drive_service()
                 
                 # Try to read plan from Google Drive
-                plan_content = drive_service.read_file(args.plan, 'project_documentation')
+                plan_content = drive_service.read_file(args.plan, 'Documentation')
                 if not plan_content:
                     print(f"❌ Implementation plan not found in Google Drive: {args.plan}")
                     return_code = 1
@@ -1663,7 +1663,7 @@ def main():
                     return_code = 1
                 else:
                     # Reload implementation plan
-                    plan_content = drive_service.read_file(state['plan_name'], 'project_documentation')
+                    plan_content = drive_service.read_file(state['plan_name'], 'Documentation')
                     if not plan_content:
                         print(f"❌ Original plan not found: {state['plan_name']}")
                         return_code = 1

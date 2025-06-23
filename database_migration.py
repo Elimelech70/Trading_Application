@@ -38,7 +38,7 @@ logger = logging.getLogger('database_migration')
 
 class DatabaseMigration:
     def __init__(self, db_path='./trading_system.db'):
-        self.db_path = './trading_system.db'
+        self.db_path = db_path
         self.tables_created = []
         
     def create_connection(self):

@@ -118,6 +118,7 @@ class SecurityScannerService:
         
         for symbol in watchlist:
             try:
+            time.sleep(0.5)  # Rate limit protection
                 if YFINANCE_AVAILABLE:
                     security_data = self._analyze_security_yfinance(symbol)
                 else:

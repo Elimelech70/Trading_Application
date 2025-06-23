@@ -107,7 +107,7 @@ class CoordinationService:
                 CREATE TABLE IF NOT EXISTS service_coordination (
                     service_name TEXT PRIMARY KEY,
                     host TEXT NOT NULL,
-                    port INTEGER NOT NULL,
+                    service_port INTEGER NOT NULL,
                     status TEXT DEFAULT 'active',
                     last_heartbeat TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -153,7 +153,7 @@ class CoordinationService:
             cursor = conn.cursor()
             
             # Load from service_coordination table
-            cursor.execute('SELECT service_name, host, port, status, last_heartbeat FROM service_coordination')
+            cursor.execute('SELECT service_name, host, service_port, status, last_heartbeat FROM service_coordination')
             for row in cursor.fetchall():
                 self.service_registry[row[0]] = {
                     'url': row[1],
@@ -437,7 +437,7 @@ class CoordinationService:
                 
                 cursor.execute('''
                     INSERT OR REPLACE INTO service_coordination 
-                    (service_name, host, port, status, last_heartbeat, updated_at)
+                    (service_name, host, service_port, status, last_heartbeat, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', (
                     service_name,
@@ -494,20 +494,14 @@ class CoordinationService:
             scan_response = requests.get(f"{scanner_url}/scan_securities", timeout=30)
             if scan_response.status_code == 200:
                 scan_data = scan_response.json()
-                # Handle both list and dict responses
-                if isinstance(scan_data, list):
-                    securities = scan_data
-                else:
-                    securities = scan_data.get('securities', [])
-                    
                 results['steps'].append({
-                    "step": "security_scan", 
+                    "step": "security_scan",
                     "status": "success",
-                    "securities_found": len(securities)
+                    "securities_found": len(scan_data.get('securities', []))
                 })
                 
                 # Process each security through the pipeline
-                for security in securities[:5]:  # Limit to top 5
+                for security in scan_data.get('securities', [])[:5]:  # Limit to top 5
                     symbol = security['symbol']
                     
                     # Pattern analysis

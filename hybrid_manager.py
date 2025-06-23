@@ -52,7 +52,9 @@ class ServiceManager:
             {"name": "pattern_recognition_service", "port": 5006, "process": None, "status": "Stopped", "critical": True, "startup_delay": 3},
             {"name": "news_service", "port": 5008, "process": None, "status": "Stopped", "critical": False, "startup_delay": 3},
             {"name": "reporting_service", "port": 5009, "process": None, "status": "Stopped", "critical": False, "startup_delay": 3},
-            {"name": "web_dashboard", "port": 8080, "process": None, "status": "Stopped", "critical": False, "startup_delay": 3}
+            {"name": "trading_scheduler", "port": 5011, "process": None, "status": "Stopped", "critical": False, "startup_delay": 3},
+
+            {"name": "web_dashboard", "port": 5010, "process": None, "status": "Stopped", "critical": False, "startup_delay": 3}
         ]
         self.monitoring_active = False
         self.db_path = "./trading_system.db"

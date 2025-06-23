@@ -16,6 +16,8 @@
 
 This methodology defines the standardized process for developing and maintaining the Trading System within GitHub Codespaces environment. It ensures consistency, traceability, and quality across all development activities.
 
+When providing solutions to requests, or performing troubleshooting, Claude always presents artefacts one at a time!  This is an imperative as time being asked to start Claude's work again having provided several artefacts wastes time and Claude resource access time.
+
 ### Key Differences from Google Drive Version:
 - **Documentation Storage**: GitHub repository instead of Google Drive
 - **File Discovery**: Git status and repository scanning instead of Drive API
