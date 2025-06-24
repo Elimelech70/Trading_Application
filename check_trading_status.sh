@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "=== TRADING SYSTEM STATUS ==="
+echo ""
+echo "Last Trading Cycle:"
+sqlite3 trading_system.db "SELECT cycle_id, status, securities_scanned, patterns_found, trades_executed FROM trading_cycles ORDER BY id DESC LIMIT 1;"
+echo ""
+echo "Total Counts:"
+sqlite3 trading_system.db "SELECT 'Scanning Results: ' || COUNT(*) FROM scanning_results UNION ALL SELECT 'Patterns Found: ' || COUNT(*) FROM pattern_analysis UNION ALL SELECT 'Trades: ' || COUNT(*) FROM trades;"
+echo ""
+echo "Recent Trades:"
+sqlite3 trading_system.db "SELECT symbol, signal_type, quantity, entry_price FROM trades ORDER BY created_at DESC LIMIT 5;"

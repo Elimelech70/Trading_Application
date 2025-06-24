@@ -103,8 +103,17 @@ class CoordinationService:
             cursor = conn.cursor()
             
             # Create service_coordination table (matching database_migration.py)
-            # Table creation handled by database_migration.py
-
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS service_coordination (
+                    service_name TEXT PRIMARY KEY,
+                    host TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    status TEXT DEFAULT 'active',
+                    last_heartbeat TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
             
             # Create trading_schedule_config table
             cursor.execute('''
@@ -147,7 +156,7 @@ class CoordinationService:
             cursor.execute('SELECT service_name, host, port, status, last_heartbeat FROM service_coordination')
             for row in cursor.fetchall():
                 self.service_registry[row[0]] = {
-                    'url': f"http://{row[1]}:{row[2]}",
+                    'url': row[1],
                     'port': row[2],
                     'status': row[3],
                     'last_heartbeat': row[4]
@@ -217,7 +226,7 @@ class CoordinationService:
                 
             # Store in memory
             self.service_registry[service_name] = {
-                'url': 'localhost',
+                'url': f"http://localhost:{port}",
                 'port': port,
                 'status': 'active',
                 'last_heartbeat': datetime.now().isoformat()
@@ -248,7 +257,7 @@ class CoordinationService:
             for service_name, port in known_services.items():
                 if self._check_service_health(service_name, port):
                     self.service_registry[service_name] = {
-                        'url': 'localhost',
+                        'url': f"http://localhost:{port}",
                         'port': port,
                         'status': 'active',
                         'last_heartbeat': datetime.now().isoformat()
@@ -428,13 +437,14 @@ class CoordinationService:
                 
                 cursor.execute('''
                     INSERT OR REPLACE INTO service_coordination 
-                    (service_name, host, port, status, last_heartbeat)
-                    VALUES (?, ?, ?, ?, ?)
+                    (service_name, host, port, status, last_heartbeat, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ''', (
                     service_name,
-                    'localhost',
+                    f"http://localhost:{port}",
                     port,
                     'active',
+                    datetime.now(),
                     datetime.now()
                 ))
                 
