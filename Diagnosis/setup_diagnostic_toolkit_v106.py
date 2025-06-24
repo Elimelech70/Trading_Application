@@ -31,9 +31,9 @@ from datetime import datetime
 
 # Configuration
 GOOGLE_DRIVE_SOURCE = '/content/drive/MyDrive/Business/Trade/software/Code/Diagnosis'
-COLAB_DIAGNOSTIC_DIR = '/content/diagnostic_toolkit'
-COLAB_TRADING_DIR = '/content/trading_system'
-REPORTS_DIR = '/content/diagnostic_reports'
+COLAB_DIAGNOSTIC_DIR = './diagnostic_toolkit'
+COLAB_TRADING_DIR = './trading_system'
+REPORTS_DIR = './diagnostic_reports'
 
 # Diagnostic files to copy
 DIAGNOSTIC_FILES = [
@@ -99,7 +99,7 @@ def create_directory_structure():
     directories = [
         COLAB_DIAGNOSTIC_DIR,
         REPORTS_DIR,
-        '/content/logs'
+        './logs'
     ]
     
     for directory in directories:

@@ -448,8 +448,8 @@ class CoordinationService:
             self.db_path = db_path
         else:
             # Look for existing database or create in current directory
-            if Path('/content/trading_system.db').exists():
-                self.db_path = '/content/trading_system.db'
+            if Path('./trading_system.db').exists():
+                self.db_path = './trading_system.db'
             elif (self.base_dir / 'trading_system.db').exists():
                 self.db_path = str(self.base_dir / 'trading_system.db')
             else:
@@ -1008,7 +1008,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -1050,9 +1050,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -1546,7 +1546,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -1588,9 +1588,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -2085,7 +2085,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -2127,9 +2127,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -4206,7 +4206,7 @@ def start_fixed_service():
 
 def check_logs():
     """Display recent log entries"""
-    log_file = Path('/content/logs/coordination_service.log')
+    log_file = Path('./logs/coordination_service.log')
     
     if log_file.exists():
         print("\n📋 Recent log entries:")
@@ -4260,7 +4260,7 @@ def main():
         check_logs()
         
         print("\n📌 Next steps:")
-        print("   1. Monitor logs: tail -f /content/logs/coordination_service.log")
+        print("   1. Monitor logs: tail -f ./logs/coordination_service.log")
         print("   2. Check health: curl http://localhost:5000/health")
         print("   3. Verify services: curl http://localhost:5000/services")
     else:
@@ -7905,8 +7905,8 @@ class CoordinationService:
             self.db_path = db_path
         else:
             # Look for existing database or create in current directory
-            if Path('/content/trading_system.db').exists():
-                self.db_path = '/content/trading_system.db'
+            if Path('./trading_system.db').exists():
+                self.db_path = './trading_system.db'
             elif (self.base_dir / 'trading_system.db').exists():
                 self.db_path = str(self.base_dir / 'trading_system.db')
             else:
@@ -8465,7 +8465,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -8507,9 +8507,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -9003,7 +9003,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -9045,9 +9045,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -9542,7 +9542,7 @@ except ImportError:
     print("Warning: database_utils not found. Running without retry logic.")
 
 class CoordinationService:
-    def __init__(self, port=5000, db_path='/content/trading_system.db'):
+    def __init__(self, port=5000, db_path='./trading_system.db'):
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
@@ -9584,9 +9584,9 @@ class CoordinationService:
         logger = logging.getLogger('CoordinationService')
         
         # Create logs directory if it doesn't exist
-        os.makedirs('/content/logs', exist_ok=True)
+        os.makedirs('./logs', exist_ok=True)
         
-        handler = logging.FileHandler('/content/logs/coordination_service.log')
+        handler = logging.FileHandler('./logs/coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -11663,7 +11663,7 @@ def start_fixed_service():
 
 def check_logs():
     """Display recent log entries"""
-    log_file = Path('/content/logs/coordination_service.log')
+    log_file = Path('./logs/coordination_service.log')
     
     if log_file.exists():
         print("\n📋 Recent log entries:")
@@ -11717,7 +11717,7 @@ def main():
         check_logs()
         
         print("\n📌 Next steps:")
-        print("   1. Monitor logs: tail -f /content/logs/coordination_service.log")
+        print("   1. Monitor logs: tail -f ./logs/coordination_service.log")
         print("   2. Check health: curl http://localhost:5000/health")
         print("   3. Verify services: curl http://localhost:5000/services")
     else:
@@ -19639,15 +19639,15 @@ import sys
 
 # Configuration
 GOOGLE_DRIVE_SOURCE = '/content/drive/MyDrive/Business/Trade/software/Code'
-COLAB_BASE_DIR = '/content/trading_system'
-DIAGNOSIS_SOURCE = '/content/drive/Business/Trade/software/Code/Diagnosis'
+COLAB_BASE_DIR = './trading_system'
+DIAGNOSIS_SOURCE = './Diagnosis'
 
 #Mount Google Drive
 """Mount Google Drive in Colab"""
 print("\n📁 Mounting Google Drive...")
 try:
 	from google.colab import drive
-        drive.mount('/content/drive', force_remount=True)
+        drive.mount('./drive', force_remount=True)
         print("✅ Google Drive mounted successfully")
         return True
 except ImportError:
@@ -19669,7 +19669,7 @@ FILE: ./Diagnosis/Run_Diagnosis_Toolkit.py
 python3 diagnostic_toolkit.py --quick
 python3 diagnostic_toolkit.py --report
 python3 diagnostic_toolkit.py --service pattern --report
-python3 diagnostic_toolkit.py --service pattern --report && echo "Report saved to /content/diagnostic_reports/"
+python3 diagnostic_toolkit.py --service pattern --report && echo "Report saved to ./diagnostic_reports/"
 
 These 4 options require it to have the following format (expample shows the full i.e no parameter like --quick):
 
@@ -19708,7 +19708,7 @@ class LogAnalysisDiagnostic:
     """Analyze trading system service logs for issues and patterns"""
     
     def __init__(self):
-        self.log_dir = Path('/content/logs')
+        self.log_dir = Path('./logs')
         self.log_files = {
             'coordination': 'coordination_service.log',
             'scanner': 'security_scanner.log',
@@ -20949,7 +20949,7 @@ class TradingSystemDiagnosticToolkit:
         self.process_diagnostic = ProcessPortDiagnostic()
         
         # Output directory
-        self.output_dir = Path('/content/diagnostic_reports')
+        self.output_dir = Path('./diagnostic_reports')
         self.output_dir.mkdir(exist_ok=True)
     
     def run_comprehensive_diagnostic(self, options: Dict) -> Dict:
@@ -21431,7 +21431,7 @@ class TradingSystemDiagnosticToolkit:
         self.process_diagnostic = ProcessPortDiagnostic()
         
         # Output directory
-        self.output_dir = Path('/content/diagnostic_reports')
+        self.output_dir = Path('./diagnostic_reports')
         self.output_dir.mkdir(exist_ok=True)
     
     def run_comprehensive_diagnostic(self, options: Dict) -> Dict:
@@ -21889,9 +21889,9 @@ from datetime import datetime
 
 # Configuration
 GOOGLE_DRIVE_SOURCE = '/content/drive/MyDrive/Business/Trade/software/Code/Diagnosis'
-COLAB_DIAGNOSTIC_DIR = '/content/diagnostic_toolkit'
-COLAB_TRADING_DIR = '/content/trading_system'
-REPORTS_DIR = '/content/diagnostic_reports'
+COLAB_DIAGNOSTIC_DIR = './diagnostic_toolkit'
+COLAB_TRADING_DIR = './trading_system'
+REPORTS_DIR = './diagnostic_reports'
 
 # Diagnostic files to copy
 DIAGNOSTIC_FILES = [
@@ -21940,7 +21940,7 @@ def mount_google_drive():
     print(f"\n{Colors.OKBLUE}📁 Mounting Google Drive...{Colors.ENDC}")
     try:
         from google.colab import drive
-        drive.mount('/content/drive', force_remount=False)
+        drive.mount('./drive', force_remount=False)
         print(f"{Colors.OKGREEN}✅ Google Drive mounted successfully{Colors.ENDC}")
         return True
     except ImportError:
@@ -21957,7 +21957,7 @@ def create_directory_structure():
     directories = [
         COLAB_DIAGNOSTIC_DIR,
         REPORTS_DIR,
-        '/content/logs'
+        './logs'
     ]
     
     for directory in directories:
@@ -21974,7 +21974,7 @@ def copy_diagnostic_files():
     # Check both possible path formats
     possible_paths = [
         Path(GOOGLE_DRIVE_SOURCE),
-        Path('/content/drive/My Drive/Business/Trade/software/Code/Diagnosis')
+        Path('./drive/My Drive/Business/Trade/software/Code/Diagnosis')
     ]
     
     source_path = None
@@ -23097,11 +23097,11 @@ class ConfigurationManager:
     
     # Default paths
     DEFAULT_PATHS = {
-        "services_dir": "/content/trading_system",
-        "logs_dir": "/content/logs",
-        "checkpoint_dir": "/content/drive/MyDrive/TradingBot/checkpoints",
-        "backup_dir": "/content/drive/MyDrive/TradingBot/backups",
-        "database_path": "/content/trading_system.db"
+        "services_dir": "./trading_system",
+        "logs_dir": "./logs",
+        "checkpoint_dir": "./checkpoints",
+        "backup_dir": "./backups",
+        "database_path": "./trading_system.db"
     }
     
     def __init__(self, config_file: Optional[str] = None):
@@ -23378,7 +23378,7 @@ class LifecycleManager:
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd='/content/trading_system',
+                cwd='./trading_system',
                 env=self._get_service_env()
             )
             
@@ -24224,7 +24224,7 @@ from typing import Dict, Optional
 def setup_logging(component_name: str, log_level: str = 'INFO') -> logging.Logger:
     """Set up logging for a component"""
     # Ensure log directory exists
-    log_dir = Path('/content/logs')
+    log_dir = Path('./logs')
     log_dir.mkdir(exist_ok=True)
     
     # Create logger
@@ -24340,7 +24340,7 @@ def format_timestamp(timestamp_str: str) -> str:
 
 def ensure_google_drive_mounted() -> bool:
     """Ensure Google Drive is mounted in Colab"""
-    drive_path = Path('/content/drive')
+    drive_path = Path('./drive')
     
     if drive_path.exists() and any(drive_path.iterdir()):
         return True
@@ -24359,7 +24359,7 @@ def ensure_google_drive_mounted() -> bool:
 
 def get_service_logs(service_name: str, lines: int = 50) -> Optional[str]:
     """Get recent logs from a service"""
-    log_file = Path(f'/content/logs/{service_name}_service.log')
+    log_file = Path(f'./logs/{service_name}_service.log')
     
     if not log_file.exists():
         return None
@@ -24380,14 +24380,14 @@ def check_system_requirements() -> Dict[str, bool]:
     requirements['python_3.10+'] = sys.version_info >= (3, 10)
     
     # Check required directories
-    requirements['logs_directory'] = Path('/content/logs').exists()
-    requirements['services_directory'] = Path('/content/trading_system').exists()
+    requirements['logs_directory'] = Path('./logs').exists()
+    requirements['services_directory'] = Path('./').exists()
     
     # Check Google Drive (optional but recommended)
     requirements['google_drive'] = Path('/content/drive').exists()
     
     # Check for database
-    requirements['database'] = Path('/content/trading_system.db').exists()
+    requirements['database'] = Path('./trading_system.db').exists()
     
     # Check for service files
     service_files = [
@@ -24412,11 +24412,10 @@ def check_system_requirements() -> Dict[str, bool]:
 def create_directory_structure():
     """Create required directory structure"""
     directories = [
-        '/content/logs',
-        '/content/trading_system',
-        '/content/drive/MyDrive/TradingBot/checkpoints',
-        '/content/drive/MyDrive/TradingBot/backups',
-        '/content/drive/MyDrive/TradingBot/logs'
+        './logs',
+        './',
+        './checkpoints',
+        './backups'
     ]
     
     for directory in directories:
@@ -24459,7 +24458,7 @@ def get_system_info() -> Dict:
 
 def cleanup_old_logs(days: int = 7):
     """Clean up log files older than specified days"""
-    log_dir = Path('/content/logs')
+    log_dir = Path('./logs')
     if not log_dir.exists():
         return
     
@@ -24675,7 +24674,7 @@ Automated update process executing approved implementation plan.
             )
         else:
             # Fallback to local file
-            diary_path = Path(f'/content/trading_system/{self.diary_filename}')
+            diary_path = Path(f'./{self.diary_filename}')
             with open(diary_path, 'w') as f:
                 f.write(content)
                 
@@ -24801,7 +24800,7 @@ Automated update process executing approved implementation plan.
                 elif "Preparation" in self.current_phase:
                     task_list.extend([
                         f"1. Verify backup completed successfully",
-                        f"2. Check backup location: /content/backups/",
+                        f"2. Check backup location: ./backups/",
                         f"3. Continue with: {python_cmd} TRADING_SYSTEM_AUTOMATED_UPDATE_PROCESS.py --continue"
                     ])
                 elif "Implementation" in self.current_phase:
@@ -24867,10 +24866,10 @@ class TradingSystemUpdater:
         self.diary = ChangeDiary(self.implementation_id, self.plan.plan_name, self.drive_service)
         
         # Paths
-        self.base_path = Path('/content/trading_system')
-        self.backup_path = Path('/content/backups')
-        self.update_path = Path('/content/updates')
-        self.temp_path = Path('/content/temp_updates')
+        self.base_path = Path('./trading_system')
+        self.backup_path = Path('./backups')
+        self.update_path = Path('./updates')
+        self.temp_path = Path('./temp_updates')
         
         # Create required directories
         self._create_required_directories()
@@ -24896,7 +24895,7 @@ class TradingSystemUpdater:
             
     def _setup_logging(self):
         """Setup logging configuration"""
-        log_dir = Path('/content/logs')
+        log_dir = Path('./logs')
         log_dir.mkdir(exist_ok=True)
         
         logger = logging.getLogger('TradingSystemUpdater')
@@ -25084,7 +25083,7 @@ class TradingSystemUpdater:
                         self.update_path / source,
                         self.temp_path / source,
                         self.base_path / 'project_documentation' / source,
-                        Path(f'/content/drive/MyDrive/TradingSystem/project_documentation/{source}')
+                        Path(f'./documentation/{source}')
                     ]
                     
                     source_found = None
@@ -25246,7 +25245,7 @@ def main():
         # Handle different command options
         if args.status:
             # Check status
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./.update_state.json')
             if state_file.exists():
                 with open(state_file, 'r') as f:
                     state = json.load(f)
@@ -25295,7 +25294,7 @@ def main():
                 
                 if not state:
                     # Try local file
-                    state_file = Path('/content/trading_system/.update_state.json')
+                    state_file = Path('./.update_state.json')
                     if state_file.exists():
                         with open(state_file, 'r') as f:
                             state = json.load(f)
@@ -25342,7 +25341,7 @@ def main():
                 
         elif args.rollback:
             # Rollback implementation
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./.update_state.json')
             if not state_file.exists():
                 print("❌ No implementation in progress to rollback")
                 return_code = 1
@@ -25544,7 +25543,7 @@ Automated update process executing approved implementation plan.
             )
         else:
             # Fallback to local file
-            diary_path = Path(f'/content/trading_system/{self.diary_filename}')
+            diary_path = Path(f'./{self.diary_filename}')
             with open(diary_path, 'w') as f:
                 f.write(content)
                 
@@ -25670,7 +25669,7 @@ Automated update process executing approved implementation plan.
                 elif "Preparation" in self.current_phase:
                     task_list.extend([
                         f"1. Verify backup completed successfully",
-                        f"2. Check backup location: /content/backups/",
+                        f"2. Check backup location: ./backups/",
                         f"3. Continue with: {python_cmd} TRADING_SYSTEM_AUTOMATED_UPDATE_PROCESS.py --continue"
                     ])
                 elif "Implementation" in self.current_phase:
@@ -25736,10 +25735,10 @@ class TradingSystemUpdater:
         self.diary = ChangeDiary(self.implementation_id, self.plan.plan_name, self.drive_service)
         
         # Paths
-        self.base_path = Path('/content/trading_system')
-        self.backup_path = Path('/content/backups')
-        self.update_path = Path('/content/updates')
-        self.temp_path = Path('/content/temp_updates')
+        self.base_path = Path('.')
+        self.backup_path = Path('./backups')
+        self.update_path = Path('./updates')
+        self.temp_path = Path('./temp_updates')
         
         # Create required directories
         self._create_required_directories()
@@ -25765,7 +25764,7 @@ class TradingSystemUpdater:
             
     def _setup_logging(self):
         """Setup logging configuration"""
-        log_dir = Path('/content/logs')
+        log_dir = Path('./logs')
         log_dir.mkdir(exist_ok=True)
         
         logger = logging.getLogger('TradingSystemUpdater')
@@ -25953,7 +25952,7 @@ class TradingSystemUpdater:
                         self.update_path / source,
                         self.temp_path / source,
                         self.base_path / 'project_documentation' / source,
-                        Path(f'/content/drive/MyDrive/TradingSystem/project_documentation/{source}')
+                        Path(f'./documentation/{source}')
                     ]
                     
                     source_found = None
@@ -26115,7 +26114,7 @@ def main():
         # Handle different command options
         if args.status:
             # Check status
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./.update_state.json')
             if state_file.exists():
                 with open(state_file, 'r') as f:
                     state = json.load(f)
@@ -26164,7 +26163,7 @@ def main():
                 
                 if not state:
                     # Try local file
-                    state_file = Path('/content/trading_system/.update_state.json')
+                    state_file = Path('./.update_state.json')
                     if state_file.exists():
                         with open(state_file, 'r') as f:
                             state = json.load(f)
@@ -26211,7 +26210,7 @@ def main():
                 
         elif args.rollback:
             # Rollback implementation
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./.update_state.json')
             if not state_file.exists():
                 print("❌ No implementation in progress to rollback")
                 return_code = 1

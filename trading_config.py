@@ -13,7 +13,7 @@ IS_DOCKER = os.path.exists('/.dockerenv')
 
 # Base Paths
 if IS_COLAB:
-    BASE_PATH = Path('/content')
+    BASE_PATH = Path('./')
 elif IS_CODESPACE:
     # In Codespaces, we're in /workspaces/[repo-name]
     BASE_PATH = Path.cwd()

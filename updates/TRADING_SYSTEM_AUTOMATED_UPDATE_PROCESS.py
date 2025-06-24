@@ -164,7 +164,7 @@ Automated update process executing approved implementation plan.
             )
         else:
             # Fallback to local file
-            diary_path = Path(f'/content/trading_system/{self.diary_filename}')
+            diary_path = Path(f'./trading_system/{self.diary_filename}')
             with open(diary_path, 'w') as f:
                 f.write(content)
                 
@@ -290,7 +290,7 @@ Automated update process executing approved implementation plan.
                 elif "Preparation" in self.current_phase:
                     task_list.extend([
                         f"1. Verify backup completed successfully",
-                        f"2. Check backup location: /content/backups/",
+                        f"2. Check backup location: ./backups/",
                         f"3. Continue with: {python_cmd} TRADING_SYSTEM_AUTOMATED_UPDATE_PROCESS.py --continue"
                     ])
                 elif "Implementation" in self.current_phase:
@@ -356,10 +356,10 @@ class TradingSystemUpdater:
         self.diary = ChangeDiary(self.implementation_id, self.plan.plan_name, self.drive_service)
         
         # Paths
-        self.base_path = Path('/content/trading_system')
-        self.backup_path = Path('/content/backups')
-        self.update_path = Path('/content/updates')
-        self.temp_path = Path('/content/temp_updates')
+        self.base_path = Path('./trading_system')
+        self.backup_path = Path('./backups')
+        self.update_path = Path('./updates')
+        self.temp_path = Path('./temp_updates')
         
         # Create required directories
         self._create_required_directories()
@@ -385,7 +385,7 @@ class TradingSystemUpdater:
             
     def _setup_logging(self):
         """Setup logging configuration"""
-        log_dir = Path('/content/logs')
+        log_dir = Path('./logs')
         log_dir.mkdir(exist_ok=True)
         
         logger = logging.getLogger('TradingSystemUpdater')
@@ -735,7 +735,7 @@ def main():
         # Handle different command options
         if args.status:
             # Check status
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./trading_system/.update_state.json')
             if state_file.exists():
                 with open(state_file, 'r') as f:
                     state = json.load(f)
@@ -784,7 +784,7 @@ def main():
                 
                 if not state:
                     # Try local file
-                    state_file = Path('/content/trading_system/.update_state.json')
+                    state_file = Path('./trading_system/.update_state.json')
                     if state_file.exists():
                         with open(state_file, 'r') as f:
                             state = json.load(f)
@@ -831,7 +831,7 @@ def main():
                 
         elif args.rollback:
             # Rollback implementation
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./trading_system/.update_state.json')
             if not state_file.exists():
                 print("❌ No implementation in progress to rollback")
                 return_code = 1
@@ -1033,7 +1033,7 @@ Automated update process executing approved implementation plan.
             )
         else:
             # Fallback to local file
-            diary_path = Path(f'/content/trading_system/{self.diary_filename}')
+            diary_path = Path(f'./trading_system/{self.diary_filename}')
             with open(diary_path, 'w') as f:
                 f.write(content)
                 
@@ -1159,7 +1159,7 @@ Automated update process executing approved implementation plan.
                 elif "Preparation" in self.current_phase:
                     task_list.extend([
                         f"1. Verify backup completed successfully",
-                        f"2. Check backup location: /content/backups/",
+                        f"2. Check backup location: ./backups/",
                         f"3. Continue with: {python_cmd} TRADING_SYSTEM_AUTOMATED_UPDATE_PROCESS.py --continue"
                     ])
                 elif "Implementation" in self.current_phase:
@@ -1225,10 +1225,10 @@ class TradingSystemUpdater:
         self.diary = ChangeDiary(self.implementation_id, self.plan.plan_name, self.drive_service)
         
         # Paths
-        self.base_path = Path('/content/trading_system')
-        self.backup_path = Path('/content/backups')
-        self.update_path = Path('/content/updates')
-        self.temp_path = Path('/content/temp_updates')
+        self.base_path = Path('./trading_system')
+        self.backup_path = Path('./backups')
+        self.update_path = Path('./updates')
+        self.temp_path = Path('./temp_updates')
         
         # Create required directories
         self._create_required_directories()
@@ -1254,7 +1254,7 @@ class TradingSystemUpdater:
             
     def _setup_logging(self):
         """Setup logging configuration"""
-        log_dir = Path('/content/logs')
+        log_dir = Path('./logs')
         log_dir.mkdir(exist_ok=True)
         
         logger = logging.getLogger('TradingSystemUpdater')
@@ -1604,7 +1604,7 @@ def main():
         # Handle different command options
         if args.status:
             # Check status
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./trading_system/.update_state.json')
             if state_file.exists():
                 with open(state_file, 'r') as f:
                     state = json.load(f)
@@ -1653,7 +1653,7 @@ def main():
                 
                 if not state:
                     # Try local file
-                    state_file = Path('/content/trading_system/.update_state.json')
+                    state_file = Path('./trading_system/.update_state.json')
                     if state_file.exists():
                         with open(state_file, 'r') as f:
                             state = json.load(f)
@@ -1700,7 +1700,7 @@ def main():
                 
         elif args.rollback:
             # Rollback implementation
-            state_file = Path('/content/trading_system/.update_state.json')
+            state_file = Path('./trading_system/.update_state.json')
             if not state_file.exists():
                 print("❌ No implementation in progress to rollback")
                 return_code = 1

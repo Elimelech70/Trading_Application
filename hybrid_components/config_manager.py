@@ -104,11 +104,11 @@ class ConfigurationManager:
     
     # Default paths
     DEFAULT_PATHS = {
-        "services_dir": "/content/trading_system",
-        "logs_dir": "/content/logs",
-        "checkpoint_dir": "/content/drive/MyDrive/TradingBot/checkpoints",
-        "backup_dir": "/content/drive/MyDrive/TradingBot/backups",
-        "database_path": "/content/trading_system.db"
+        "services_dir": ".",
+        "logs_dir": "./logs",
+        "checkpoint_dir": "./checkpoints",
+        "backup_dir": "./backups",
+        "database_path": "./trading_system.db"
     }
     
     def __init__(self, config_file: Optional[str] = None):

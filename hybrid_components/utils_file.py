@@ -15,7 +15,7 @@ from typing import Dict, Optional
 def setup_logging(component_name: str, log_level: str = 'INFO') -> logging.Logger:
     """Set up logging for a component"""
     # Ensure log directory exists
-    log_dir = Path('/content/logs')
+    log_dir = Path('./logs')
     log_dir.mkdir(exist_ok=True)
     
     # Create logger
@@ -150,7 +150,7 @@ def ensure_google_drive_mounted() -> bool:
 
 def get_service_logs(service_name: str, lines: int = 50) -> Optional[str]:
     """Get recent logs from a service"""
-    log_file = Path(f'/content/logs/{service_name}_service.log')
+    log_file = Path(f'./logs/{service_name}_service.log')
     
     if not log_file.exists():
         return None
@@ -171,14 +171,14 @@ def check_system_requirements() -> Dict[str, bool]:
     requirements['python_3.10+'] = sys.version_info >= (3, 10)
     
     # Check required directories
-    requirements['logs_directory'] = Path('/content/logs').exists()
-    requirements['services_directory'] = Path('/content/trading_system').exists()
+    requirements['logs_directory'] = Path('./logs').exists()
+    requirements['services_directory'] = Path('./').exists()
     
     # Check Google Drive (optional but recommended)
     requirements['google_drive'] = Path('/content/drive').exists()
     
     # Check for database
-    requirements['database'] = Path('/content/trading_system.db').exists()
+    requirements['database'] = Path('./trading_system.db').exists()
     
     # Check for service files
     service_files = [
@@ -203,11 +203,9 @@ def check_system_requirements() -> Dict[str, bool]:
 def create_directory_structure():
     """Create required directory structure"""
     directories = [
-        '/content/logs',
-        '/content/trading_system',
-        '/content/drive/MyDrive/TradingBot/checkpoints',
-        '/content/drive/MyDrive/TradingBot/backups',
-        '/content/drive/MyDrive/TradingBot/logs'
+        './logs',
+        './checkpoints',
+        './backups'
     ]
     
     for directory in directories:
@@ -250,7 +248,7 @@ def get_system_info() -> Dict:
 
 def cleanup_old_logs(days: int = 7):
     """Clean up log files older than specified days"""
-    log_dir = Path('/content/logs')
+    log_dir = Path('./logs')
     if not log_dir.exists():
         return
     

@@ -22,7 +22,7 @@ class LogAnalysisDiagnostic:
     """Analyze trading system service logs for issues and patterns"""
     
     def __init__(self):
-        self.log_dir = Path('/content/logs')
+        self.log_dir = Path('./logs')
         self.log_files = {
             'coordination': 'coordination_service.log',
             'scanner': 'security_scanner.log',

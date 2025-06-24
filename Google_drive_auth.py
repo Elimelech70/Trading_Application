@@ -56,7 +56,7 @@ class ColabDriveManager:
             drive.mount('./drive')
 
             # Set up local file system paths
-            self.project_root = Path('./drive/MyDrive/TradingSystem_Phase1')
+            self.project_root = Path('./)
             self.project_root.mkdir(exist_ok=True)
 
             print("✅ Google Drive mounted successfully (fallback mode)")

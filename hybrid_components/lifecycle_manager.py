@@ -92,7 +92,7 @@ class LifecycleManager:
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd='/content/trading_system',
+                cwd='./',
                 env=self._get_service_env()
             )
             

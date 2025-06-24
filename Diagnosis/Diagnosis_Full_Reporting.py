@@ -4,8 +4,8 @@ import sys
 
 # Configuration
 GOOGLE_DRIVE_SOURCE = '/content/drive/MyDrive/Business/Trade/software/Code'
-COLAB_BASE_DIR = '/content/trading_system'
-DIAGNOSIS_SOURCE = '/content/drive/Business/Trade/software/Code/Diagnosis'
+COLAB_BASE_DIR = './trading_system'
+DIAGNOSIS_SOURCE = './Diagnosis'
 
 #Mount Google Drive
 """Mount Google Drive in Colab"""
