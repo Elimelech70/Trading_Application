@@ -59,7 +59,7 @@ class CoordinationService:
         
         # Trading schedule configuration
         self.schedule_config = {
-            "enabled": False,
+            "enabled": True,
             "interval_minutes": 30,
             "market_hours_only": True,
             "start_time": "09:30",

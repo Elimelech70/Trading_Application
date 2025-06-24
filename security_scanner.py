@@ -51,8 +51,8 @@ class SecurityScannerService:
         self.criteria = {
             "min_price": 2.0,
             "max_price": 20.0,
-            "min_volume_ratio": 5.0,
-            "min_price_change_pct": 10.0
+            "min_volume_ratio": 3.0,
+            "min_price_change_pct": 7.0
         }
         
         self._setup_routes()
