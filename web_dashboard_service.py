@@ -2,17 +2,16 @@
 """
 Name of Service: Web Dashboard Service
 Filename: web_dashboard_service.py
-Version: 2.0.0
-Last Updated: 2025-06-24
+Version: 2.1.0
+Last Updated: 2025-01-27
 REVISION HISTORY:
+v2.1.0 (2025-01-27) - Separated trading dashboard from main system health dashboard
 v2.0.0 (2025-06-24) - Provides comprehensive trading system monitoring with integrated workflow tracking
 v1.0.4 (2025-06-19) - Added Trade tab with trading controls and schedule display
 v1.0.3 (2025-06-19) - Enhanced with fallback status checking and auto-registration
 v1.0.2 (2025-06-17) - Fixed real-time updates and WebSocket functionality
 v1.0.1 (2025-06-15) - Added comprehensive monitoring dashboard
 v1.0.0 (2025-06-15) - Initial web dashboard implementation
-
-
 """
 
 import os
@@ -23,7 +22,6 @@ from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, render_template_string
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
-from pl_tracking_enhancement import pl_bp, PLTracker
 import threading
 import time
 import requests
@@ -33,8 +31,8 @@ from trading_workflow_tracker import TradingWorkflowTracker, WorkflowPhase
 
 class WebDashboardService:
     """
-    Enhanced web dashboard service with integrated workflow tracking
-    Provides real-time monitoring of trading system and workflow execution
+    Web dashboard service with separated system health and trading dashboards
+    Main page focuses on system health, trading details on separate page
     """
     
     def __init__(self, db_path='./trading_system.db', port=5010):
@@ -50,10 +48,6 @@ class WebDashboardService:
         
         # Initialize workflow tracker
         self.workflow_tracker = TradingWorkflowTracker(db_path=db_path)
-
-        # In __init__ method after workflow tracker init
-        self.pl_tracker = PLTracker(db_path=self.db_path)
-        self.app.register_blueprint(pl_bp)
         
         # Service registry for health checks
         self.services = {
@@ -64,7 +58,16 @@ class WebDashboardService:
             'trading': {'port': 5005, 'name': 'Paper Trading'},
             'pattern_rec': {'port': 5006, 'name': 'Pattern Recognition'},
             'news': {'port': 5008, 'name': 'News Service'},
-            'reporting': {'port': 5009, 'name': 'Reporting Service'}
+            'reporting': {'port': 5009, 'name': 'Reporting Service'},
+            'dashboard': {'port': 5010, 'name': 'Web Dashboard'},
+            'scheduler': {'port': 5011, 'name': 'Trading Scheduler'}
+        }
+        
+        # Status cache to reduce load
+        self.status_cache = {
+            'data': None,
+            'timestamp': None,
+            'cache_duration': 5  # seconds
         }
         
         # Setup
@@ -96,8 +99,13 @@ class WebDashboardService:
         
         @self.app.route('/')
         def index():
-            """Main dashboard page"""
+            """Main system health dashboard page"""
             return self._render_main_dashboard()
+        
+        @self.app.route('/trading')
+        def trading_dashboard():
+            """Enhanced trading dashboard page"""
+            return self._render_trading_dashboard()
         
         @self.app.route('/workflow')
         def workflow_dashboard():
@@ -138,6 +146,41 @@ class WebDashboardService:
             """Get health status of all services"""
             return jsonify(self._get_system_health())
         
+        @self.app.route('/api/status')
+        def api_status():
+            """Get overall system status"""
+            services = self._get_system_health()
+            
+            total_services = len(services)
+            active_services = sum(1 for s in services.values() if s.get('status') == 'healthy')
+            
+            # Determine overall status
+            if active_services == total_services:
+                overall_status = "Fully Operational"
+                status_class = "success"
+            elif active_services >= total_services * 0.7:
+                overall_status = "Degraded Performance"
+                status_class = "warning"
+            elif active_services > 0:
+                overall_status = "Partial Outage"
+                status_class = "danger"
+            else:
+                overall_status = "System Offline"
+                status_class = "danger"
+            
+            return jsonify({
+                "overall_status": overall_status,
+                "status_class": status_class,
+                "active_services": active_services,
+                "total_services": total_services,
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        @self.app.route('/api/services')
+        def api_services():
+            """Get detailed service status"""
+            return jsonify(self._get_system_health())
+        
         @self.app.route('/api/trading/stats')
         def get_trading_stats():
             """Get trading statistics"""
@@ -169,11 +212,78 @@ class WebDashboardService:
         def get_alerts():
             """Get system alerts"""
             return jsonify(self._get_system_alerts())
+        
+        @self.app.route('/api/trading_cycle')
+        def api_trading_cycle():
+            """Get latest trading cycle info"""
+            try:
+                response = requests.get("http://localhost:5000/latest_cycle", timeout=5)
+                if response.status_code == 200:
+                    return jsonify(response.json())
+            except:
+                pass
+            
+            return jsonify({"status": "No active cycle"})
+        
+        @self.app.route('/api/trade/start_cycle', methods=['POST'])
+        def start_trading_cycle():
+            """Start a new trading cycle"""
+            try:
+                response = requests.post("http://localhost:5000/start_trading_cycle", timeout=30)
+                if response.status_code == 200:
+                    return jsonify(response.json())
+                else:
+                    return jsonify({"error": "Failed to start trading cycle"}), 500
+            except Exception as e:
+                return jsonify({"error": f"Error starting cycle: {str(e)}"}), 500
+        
+        @self.app.route('/api/schedule/status')
+        def get_schedule_status():
+            """Get trading schedule status"""
+            try:
+                response = requests.get("http://localhost:5000/schedule/status", timeout=5)
+                if response.status_code == 200:
+                    return jsonify(response.json())
+            except:
+                pass
+            
+            return jsonify({
+                "enabled": False,
+                "message": "Trading scheduler not available",
+                "next_run": None
+            })
+        
+        @self.app.route('/api/schedule/config', methods=['GET', 'POST'])
+        def schedule_config():
+            """Get or set trading schedule configuration"""
+            if request.method == 'GET':
+                try:
+                    response = requests.get("http://localhost:5000/schedule/config", timeout=5)
+                    if response.status_code == 200:
+                        return jsonify(response.json())
+                except:
+                    pass
+                
+                return jsonify({
+                    "enabled": False,
+                    "interval_minutes": 30,
+                    "market_hours_only": True,
+                    "start_time": "09:30",
+                    "end_time": "16:00"
+                })
+            
+            else:  # POST
+                try:
+                    response = requests.post("http://localhost:5000/schedule/config", 
+                                           json=request.json, timeout=5)
+                    if response.status_code == 200:
+                        return jsonify(response.json())
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
     
     def _setup_workflow_routes(self):
         """Setup workflow tracking routes"""
         
-        # Workflow Status APIs
         @self.app.route('/api/workflow/current')
         def get_current_workflow():
             """Get current workflow status"""
@@ -230,138 +340,6 @@ class WebDashboardService:
                 self.logger.error(f"Error getting phase status: {e}")
                 return jsonify({"error": str(e)}), 500
         
-        # Workflow Control APIs (for coordination service integration)
-        @self.app.route('/api/workflow/start', methods=['POST'])
-        def start_workflow():
-            """Start tracking a new workflow"""
-            data = request.json
-            cycle_id = data.get('cycle_id')
-            
-            if not cycle_id:
-                return jsonify({"error": "cycle_id required"}), 400
-            
-            success = self.workflow_tracker.start_workflow(cycle_id)
-            
-            # Emit real-time update
-            self.socketio.emit('workflow_started', {
-                'cycle_id': cycle_id,
-                'timestamp': datetime.now().isoformat()
-            })
-            
-            return jsonify({"success": success, "cycle_id": cycle_id})
-        
-        @self.app.route('/api/workflow/phase/start', methods=['POST'])
-        def start_phase():
-            """Start a workflow phase"""
-            data = request.json
-            phase_name = data.get('phase')
-            metadata = data.get('metadata', {})
-            
-            phase_map = {
-                'initialization': WorkflowPhase.INITIALIZATION,
-                'security_selection': WorkflowPhase.SECURITY_SELECTION,
-                'pattern_analysis': WorkflowPhase.PATTERN_ANALYSIS,
-                'signal_generation': WorkflowPhase.SIGNAL_GENERATION,
-                'trade_execution': WorkflowPhase.TRADE_EXECUTION,
-                'completion': WorkflowPhase.COMPLETION
-            }
-            
-            if phase_name not in phase_map:
-                return jsonify({"error": "Invalid phase"}), 400
-            
-            success = self.workflow_tracker.start_phase(phase_map[phase_name], metadata)
-            
-            # Emit real-time update
-            self.socketio.emit('phase_started', {
-                'phase': phase_name,
-                'timestamp': datetime.now().isoformat()
-            })
-            
-            return jsonify({"success": success})
-        
-        @self.app.route('/api/workflow/phase/update', methods=['POST'])
-        def update_phase():
-            """Update phase progress"""
-            data = request.json
-            phase_name = data.get('phase')
-            
-            phase_map = {
-                'initialization': WorkflowPhase.INITIALIZATION,
-                'security_selection': WorkflowPhase.SECURITY_SELECTION,
-                'pattern_analysis': WorkflowPhase.PATTERN_ANALYSIS,
-                'signal_generation': WorkflowPhase.SIGNAL_GENERATION,
-                'trade_execution': WorkflowPhase.TRADE_EXECUTION,
-                'completion': WorkflowPhase.COMPLETION
-            }
-            
-            if phase_name not in phase_map:
-                return jsonify({"error": "Invalid phase"}), 400
-            
-            success = self.workflow_tracker.update_phase_progress(
-                phase_map[phase_name],
-                items_processed=data.get('items_processed'),
-                items_succeeded=data.get('items_succeeded'),
-                items_failed=data.get('items_failed'),
-                metadata=data.get('metadata')
-            )
-            
-            # Emit real-time update
-            self.socketio.emit('phase_updated', {
-                'phase': phase_name,
-                'progress': data
-            })
-            
-            return jsonify({"success": success})
-        
-        @self.app.route('/api/workflow/phase/complete', methods=['POST'])
-        def complete_phase():
-            """Complete a workflow phase"""
-            data = request.json
-            phase_name = data.get('phase')
-            success = data.get('success', True)
-            error_message = data.get('error_message')
-            
-            phase_map = {
-                'initialization': WorkflowPhase.INITIALIZATION,
-                'security_selection': WorkflowPhase.SECURITY_SELECTION,
-                'pattern_analysis': WorkflowPhase.PATTERN_ANALYSIS,
-                'signal_generation': WorkflowPhase.SIGNAL_GENERATION,
-                'trade_execution': WorkflowPhase.TRADE_EXECUTION,
-                'completion': WorkflowPhase.COMPLETION
-            }
-            
-            if phase_name not in phase_map:
-                return jsonify({"error": "Invalid phase"}), 400
-            
-            result = self.workflow_tracker.complete_phase(
-                phase_map[phase_name], success, error_message
-            )
-            
-            # Emit real-time update
-            self.socketio.emit('phase_completed', {
-                'phase': phase_name,
-                'success': success,
-                'error': error_message
-            })
-            
-            return jsonify({"success": result})
-        
-        @self.app.route('/api/workflow/complete', methods=['POST'])
-        def complete_workflow():
-            """Complete the current workflow"""
-            data = request.json
-            success = data.get('success', True)
-            
-            summary = self.workflow_tracker.complete_workflow(success)
-            
-            # Emit real-time update
-            self.socketio.emit('workflow_completed', {
-                'summary': summary,
-                'timestamp': datetime.now().isoformat()
-            })
-            
-            return jsonify(summary)
-        
         @self.app.route('/api/workflow/metrics/phases')
         def get_phase_metrics():
             """Get performance metrics for all phases"""
@@ -410,7 +388,13 @@ class WebDashboardService:
             self.logger.info(f"Client subscribed to {update_type} updates")
     
     def _get_system_health(self):
-        """Check health of all trading services"""
+        """Check health of all trading services with caching"""
+        # Check cache first
+        if self.status_cache['data'] and self.status_cache['timestamp']:
+            cache_age = (datetime.now() - self.status_cache['timestamp']).total_seconds()
+            if cache_age < self.status_cache['cache_duration']:
+                return self.status_cache['data']
+        
         health_status = {}
         
         for service_key, service_info in self.services.items():
@@ -432,6 +416,10 @@ class WebDashboardService:
                     'status': 'offline',
                     'response_time': None
                 }
+        
+        # Update cache
+        self.status_cache['data'] = health_status
+        self.status_cache['timestamp'] = datetime.now()
         
         return health_status
     
@@ -703,141 +691,12 @@ class WebDashboardService:
         return alerts
     
     def _render_main_dashboard(self):
-        """Render the main dashboard HTML"""
-        return '''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Trading System Dashboard</title>
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    background: #0a0e1a;
-                    color: #e0e6ed;
-                    margin: 0;
-                    padding: 20px;
-                }
-                .header {
-                    background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                .nav-links {
-                    display: flex;
-                    gap: 20px;
-                }
-                .nav-links a {
-                    color: #00d4ff;
-                    text-decoration: none;
-                    padding: 10px 20px;
-                    background: rgba(0, 212, 255, 0.1);
-                    border-radius: 5px;
-                    transition: all 0.3s;
-                }
-                .nav-links a:hover {
-                    background: rgba(0, 212, 255, 0.2);
-                }
-                .content {
-                    background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-                    padding: 30px;
-                    border-radius: 10px;
-                    text-align: center;
-                }
-                h1 {
-                    background: linear-gradient(45deg, #00d4ff, #0099ff);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    margin: 0;
-                }
-                .status {
-                    margin-top: 20px;
-                    padding: 20px;
-                    background: rgba(0, 255, 136, 0.1);
-                    border-radius: 10px;
-                    color: #00ff88;
-                }
-                .api-list {
-                    text-align: left;
-                    margin-top: 30px;
-                    padding: 20px;
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 10px;
-                }
-                .api-list h3 {
-                    color: #00d4ff;
-                }
-                .api-list ul {
-                    list-style: none;
-                    padding: 0;
-                }
-                .api-list li {
-                    margin: 10px 0;
-                }
-                .api-list a {
-                    color: #8892a6;
-                    text-decoration: none;
-                }
-                .api-list a:hover {
-                    color: #00d4ff;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Trading System Dashboard</h1>
-                <div class="nav-links">
-                    <a href="/workflow">Workflow Monitor</a>
-                    <a href="/api/system/overview">System API</a>
-                    <a href="/health">Health Check</a>
-                </div>
-            </div>
-            
-            <div class="content">
-                <div class="status">
-                    <h2>System Status: Operational</h2>
-                    <p>Web Dashboard Service v2.0.0</p>
-                </div>
-                
-                <div class="api-list">
-                    <h3>Available Endpoints</h3>
-                    
-                    <h4>Dashboards</h4>
-                    <ul>
-                        <li><a href="/workflow">/workflow</a> - Trading Workflow Monitor</li>
-                    </ul>
-                    
-                    <h4>System APIs</h4>
-                    <ul>
-                        <li><a href="/api/system/overview">/api/system/overview</a> - Complete system overview</li>
-                        <li><a href="/api/services/health">/api/services/health</a> - Service health status</li>
-                        <li><a href="/api/alerts">/api/alerts</a> - System alerts</li>
-                    </ul>
-                    
-                    <h4>Trading APIs</h4>
-                    <ul>
-                        <li><a href="/api/trading/stats">/api/trading/stats</a> - Trading statistics</li>
-                        <li><a href="/api/trading/positions">/api/trading/positions</a> - Active positions</li>
-                        <li><a href="/api/trading/trades">/api/trading/trades</a> - Recent trades</li>
-                        <li><a href="/api/trading/performance">/api/trading/performance</a> - Performance metrics</li>
-                        <li><a href="/api/patterns/effectiveness">/api/patterns/effectiveness</a> - Pattern analysis</li>
-                    </ul>
-                    
-                    <h4>Workflow APIs</h4>
-                    <ul>
-                        <li><a href="/api/workflow/current">/api/workflow/current</a> - Current workflow status</li>
-                        <li><a href="/api/workflow/history">/api/workflow/history</a> - Workflow history</li>
-                        <li><a href="/api/workflow/metrics/phases">/api/workflow/metrics/phases</a> - Phase performance</li>
-                        <li><a href="/api/workflow/active">/api/workflow/active</a> - Active workflows</li>
-                    </ul>
-                </div>
-            </div>
-        </body>
-        </html>
-        '''
+        """Render the main system health dashboard HTML"""
+        return MAIN_DASHBOARD_HTML
+    
+    def _render_trading_dashboard(self):
+        """Render the enhanced trading dashboard HTML"""
+        return TRADING_DASHBOARD_HTML
     
     def start_monitoring(self):
         """Start background monitoring thread"""
@@ -900,7 +759,7 @@ class WebDashboardService:
     
     def run(self):
         """Run the dashboard service"""
-        self.logger.info(f"Starting Enhanced Web Dashboard Service on port {self.port}")
+        self.logger.info(f"Starting Web Dashboard Service v2.1.0 on port {self.port}")
         
         # Register with coordination service
         threading.Thread(target=self._register_with_coordination, daemon=True).start()
@@ -923,6 +782,959 @@ class WebDashboardService:
             self.logger.error(f"Error running service: {e}")
             self.stop_monitoring()
             raise
+
+
+# Main System Health Dashboard HTML
+MAIN_DASHBOARD_HTML = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading System Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .status-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .service-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        .service-healthy {
+            background-color: #28a745;
+        }
+        .service-unhealthy {
+            background-color: #dc3545;
+        }
+        .service-offline {
+            background-color: #6c757d;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .main-status {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .nav-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .nav-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .nav-card a {
+            text-decoration: none;
+            color: #007bff;
+            font-size: 1.2rem;
+        }
+        .system-info {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Trading System Dashboard</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="current-time"></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- System Status Overview -->
+        <div class="system-info">
+            <div class="text-center">
+                <h2>System Status</h2>
+                <div id="overall-status" class="main-status">Loading...</div>
+                <p class="lead">
+                    <span id="active-services">0</span> / <span id="total-services">0</span> Services Active
+                </p>
+            </div>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="nav-card">
+                    <h5>Trading Dashboard</h5>
+                    <p>View trading statistics and performance</p>
+                    <a href="/trading">Open Trading Dashboard →</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="nav-card">
+                    <h5>Workflow Monitor</h5>
+                    <p>Track trading workflow execution</p>
+                    <a href="/workflow">Open Workflow Monitor →</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="nav-card">
+                    <h5>System API</h5>
+                    <p>Access system data via API</p>
+                    <a href="/api/system/overview" target="_blank">View API →</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="nav-card">
+                    <h5>Health Check</h5>
+                    <p>Service health endpoint</p>
+                    <a href="/health" target="_blank">Check Health →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Grid -->
+        <h3>Service Status</h3>
+        <div class="row" id="services-grid">
+            <!-- Services will be populated here -->
+        </div>
+
+        <!-- Recent Alerts -->
+        <div class="mt-4">
+            <h3>System Alerts</h3>
+            <div id="alerts-container">
+                <p class="text-muted">No active alerts</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDashboard();
+            setInterval(updateDashboard, 5000);
+            setInterval(updateTime, 1000);
+            updateTime();
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+
+        async function updateDashboard() {
+            try {
+                // Update overall status
+                const statusResponse = await axios.get('/api/status');
+                const status = statusResponse.data;
+                
+                const statusElement = document.getElementById('overall-status');
+                statusElement.textContent = status.overall_status;
+                statusElement.className = 'main-status text-' + status.status_class;
+                
+                document.getElementById('active-services').textContent = status.active_services;
+                document.getElementById('total-services').textContent = status.total_services;
+                
+                // Update services grid
+                const servicesResponse = await axios.get('/api/services');
+                updateServicesGrid(servicesResponse.data);
+                
+                // Update alerts
+                const alertsResponse = await axios.get('/api/alerts');
+                updateAlerts(alertsResponse.data);
+                
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+            }
+        }
+
+        function updateServicesGrid(services) {
+            const grid = document.getElementById('services-grid');
+            grid.innerHTML = '';
+            
+            Object.entries(services).forEach(([id, service]) => {
+                const isHealthy = service.status === 'healthy';
+                const isOffline = service.status === 'offline';
+                
+                const card = document.createElement('div');
+                card.className = 'col-md-4 mb-3';
+                card.innerHTML = `
+                    <div class="card status-card ${isHealthy ? 'border-success' : (isOffline ? 'border-secondary' : 'border-danger')}">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <span class="service-indicator ${isHealthy ? 'service-healthy' : (isOffline ? 'service-offline' : 'service-unhealthy')}"></span>
+                                ${service.name}
+                            </h5>
+                            <p class="card-text">
+                                Port: ${service.port}<br>
+                                Status: <strong>${service.status}</strong><br>
+                                ${service.response_time ? `Response: ${(service.response_time * 1000).toFixed(0)}ms` : 'No response'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alerts-container');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<p class="text-muted">No active alerts</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            alerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${alert.type === 'error' ? 'danger' : 'warning'} alert-dismissible`;
+                alertDiv.innerHTML = `
+                    <strong>${alert.service}:</strong> ${alert.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                container.appendChild(alertDiv);
+            });
+        }
+    </script>
+</body>
+</html>
+'''
+
+# Enhanced Trading Dashboard HTML
+TRADING_DASHBOARD_HTML = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading Dashboard - Trading System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <style>
+        body {
+            background-color: #0a0e1a;
+            color: #e0e6ed;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .positive {
+            color: #00ff88;
+        }
+        .negative {
+            color: #ff4757;
+        }
+        .data-table {
+            background: #1a1f2e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .table {
+            color: #e0e6ed;
+        }
+        .btn-trade {
+            background: linear-gradient(45deg, #00d4ff, #0099ff);
+            border: none;
+            padding: 10px 30px;
+            font-weight: bold;
+        }
+        .btn-trade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+        }
+        .nav-link {
+            color: #8892a6;
+        }
+        .nav-link.active {
+            background-color: rgba(0, 212, 255, 0.1) !important;
+            color: #00d4ff !important;
+            border-color: transparent !important;
+        }
+        .workflow-phase {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .workflow-phase.completed {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        .workflow-phase.active {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .workflow-phase.pending {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .back-link {
+            color: #00d4ff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-link:hover {
+            color: #0099ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Back to Main Dashboard -->
+        <a href="/" class="back-link">
+            ← Back to System Dashboard
+        </a>
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Trading Dashboard</h1>
+            <p class="mb-0">Real-time trading statistics and performance monitoring</p>
+        </div>
+
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs mb-4" id="tradingTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="positions-tab" data-bs-toggle="tab" data-bs-target="#positions" type="button">Positions</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades" type="button">Recent Trades</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" data-bs-target="#workflow" type="button">Workflow</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="controls-tab" data-bs-toggle="tab" data-bs-target="#controls" type="button">Controls</button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="tradingTabContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="row">
+                    <!-- Today's Performance -->
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Today's P&L</h6>
+                            <div class="metric-value" id="today-pnl">$0.00</div>
+                            <small id="today-trades">0 trades</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Win Rate -->
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Win Rate</h6>
+                            <div class="metric-value" id="win-rate">0%</div>
+                            <small id="win-loss">0W / 0L</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Positions -->
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Active Positions</h6>
+                            <div class="metric-value" id="active-positions">0</div>
+                            <small id="position-value">$0.00 value</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Value -->
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Account Value</h6>
+                            <div class="metric-value" id="account-value">$0.00</div>
+                            <small id="buying-power">$0.00 buying power</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Chart -->
+                <div class="metric-card mt-4">
+                    <h5>7-Day Performance</h5>
+                    <canvas id="performanceChart" height="100"></canvas>
+                </div>
+
+                <!-- Pattern Effectiveness -->
+                <div class="metric-card mt-4">
+                    <h5>Pattern Effectiveness</h5>
+                    <div id="pattern-effectiveness">
+                        <p class="text-muted">Loading pattern data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Positions Tab -->
+            <div class="tab-pane fade" id="positions" role="tabpanel">
+                <div class="data-table">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Quantity</th>
+                                <th>Entry Price</th>
+                                <th>Current Price</th>
+                                <th>P&L</th>
+                                <th>P&L %</th>
+                                <th>Opened</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-table">
+                            <tr><td colspan="7" class="text-center">No active positions</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Trades Tab -->
+            <div class="tab-pane fade" id="trades" role="tabpanel">
+                <div class="data-table">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Symbol</th>
+                                <th>Side</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>P&L</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-table">
+                            <tr><td colspan="7" class="text-center">No recent trades</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Workflow Tab -->
+            <div class="tab-pane fade" id="workflow" role="tabpanel">
+                <div class="metric-card">
+                    <h5>Current Workflow Status</h5>
+                    <div id="workflow-status">
+                        <p class="text-muted">No active workflow</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>Workflow Phases</h6>
+                        <div id="workflow-phases" class="d-flex flex-wrap">
+                            <!-- Phases will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card mt-4">
+                    <h5>Recent Workflow History</h5>
+                    <div id="workflow-history">
+                        <p class="text-muted">Loading history...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Tab -->
+            <div class="tab-pane fade" id="controls" role="tabpanel">
+                <div class="text-center">
+                    <h3>Trading Controls</h3>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-trade btn-lg" onclick="startTradingCycle()">
+                            Start Trading Cycle
+                        </button>
+                    </div>
+                    
+                    <div class="metric-card mt-4">
+                        <h5>Trading Schedule</h5>
+                        <div id="schedule-status">Loading schedule...</div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="showScheduleConfig()">
+                                Configure Schedule
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="trading-result" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Configuration Modal -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Trading Schedule Configuration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="scheduleForm">
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="scheduleEnabled">
+                                <label class="form-check-label" for="scheduleEnabled">
+                                    Enable Automated Trading
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="intervalMinutes" class="form-label">Trading Interval (minutes)</label>
+                            <input type="number" class="form-control" id="intervalMinutes" value="30" min="5" max="240">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="marketHoursOnly" checked>
+                                <label class="form-check-label" for="marketHoursOnly">
+                                    Trade only during market hours
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col">
+                                <label for="startTime" class="form-label">Start Time</label>
+                                <input type="time" class="form-control" id="startTime" value="09:30">
+                            </div>
+                            <div class="col">
+                                <label for="endTime" class="form-label">End Time</label>
+                                <input type="time" class="form-control" id="endTime" value="16:00">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveScheduleConfig()">Save Schedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let socket;
+        let performanceChart;
+        let scheduleModal;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+            initializeWebSocket();
+            initializeChart();
+            updateTradingData();
+            setInterval(updateTradingData, 10000); // Update every 10 seconds
+        });
+
+        function initializeWebSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Connected to trading dashboard');
+                socket.emit('subscribe_updates', {type: 'trading'});
+            });
+            
+            socket.on('system_update', function(data) {
+                updateMetrics(data.trading_stats);
+            });
+            
+            socket.on('workflow_update', function(data) {
+                updateWorkflowStatus(data);
+            });
+        }
+
+        function initializeChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Daily P&L',
+                        data: [],
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#8892a6'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#8892a6'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function updateTradingData() {
+            try {
+                // Get system overview
+                const response = await axios.get('/api/system/overview');
+                const data = response.data;
+                
+                updateMetrics(data.trading_stats);
+                updatePositions();
+                updateTrades();
+                updatePerformance();
+                updateWorkflowStatus(data.workflow_status);
+                updateScheduleStatus();
+                
+            } catch (error) {
+                console.error('Error updating trading data:', error);
+            }
+        }
+
+        function updateMetrics(stats) {
+            if (!stats || !stats.today) return;
+            
+            // Today's P&L
+            const pnlElement = document.getElementById('today-pnl');
+            const pnl = stats.today.total_pnl || 0;
+            pnlElement.textContent = '$' + pnl.toFixed(2);
+            pnlElement.className = 'metric-value ' + (pnl >= 0 ? 'positive' : 'negative');
+            document.getElementById('today-trades').textContent = stats.today.total_trades + ' trades';
+            
+            // Win Rate
+            document.getElementById('win-rate').textContent = (stats.today.win_rate || 0).toFixed(1) + '%';
+            document.getElementById('win-loss').textContent = 
+                stats.today.winning_trades + 'W / ' + 
+                (stats.today.total_trades - stats.today.winning_trades) + 'L';
+            
+            // Active Positions
+            document.getElementById('active-positions').textContent = stats.positions.active_count || 0;
+            document.getElementById('position-value').textContent = 
+                '$' + (stats.positions.total_value || 0).toFixed(2) + ' value';
+            
+            // Account Value
+            document.getElementById('account-value').textContent = 
+                '$' + (stats.account.total_value || 0).toFixed(2);
+            document.getElementById('buying-power').textContent = 
+                '$' + (stats.account.buying_power || 0).toFixed(2) + ' buying power';
+        }
+
+        async function updatePositions() {
+            try {
+                const response = await axios.get('/api/trading/positions');
+                const positions = response.data;
+                
+                const tbody = document.getElementById('positions-table');
+                if (positions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No active positions</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = positions.map(pos => `
+                    <tr>
+                        <td>${pos.symbol}</td>
+                        <td>${pos.quantity}</td>
+                        <td>$${pos.entry_price.toFixed(2)}</td>
+                        <td>$${pos.current_price.toFixed(2)}</td>
+                        <td class="${pos.unrealized_pnl >= 0 ? 'positive' : 'negative'}">
+                            $${pos.unrealized_pnl.toFixed(2)}
+                        </td>
+                        <td class="${pos.pnl_percent >= 0 ? 'positive' : 'negative'}">
+                            ${pos.pnl_percent.toFixed(2)}%
+                        </td>
+                        <td>${new Date(pos.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error updating positions:', error);
+            }
+        }
+
+        async function updateTrades() {
+            try {
+                const response = await axios.get('/api/trading/trades?limit=20');
+                const trades = response.data;
+                
+                const tbody = document.getElementById('trades-table');
+                if (trades.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No recent trades</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = trades.map(trade => `
+                    <tr>
+                        <td>${new Date(trade.created_at).toLocaleString()}</td>
+                        <td>${trade.symbol}</td>
+                        <td>${trade.side}</td>
+                        <td>${trade.quantity}</td>
+                        <td>$${(trade.fill_price || 0).toFixed(2)}</td>
+                        <td class="${trade.pnl >= 0 ? 'positive' : 'negative'}">
+                            ${trade.pnl ? '$' + trade.pnl.toFixed(2) : '-'}
+                        </td>
+                        <td>${trade.status}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error updating trades:', error);
+            }
+        }
+
+        async function updatePerformance() {
+            try {
+                const response = await axios.get('/api/trading/performance?days=7');
+                const data = response.data;
+                
+                if (data.daily_metrics && data.daily_metrics.length > 0) {
+                    const labels = data.daily_metrics.map(d => 
+                        new Date(d.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})
+                    );
+                    const values = data.daily_metrics.map(d => d.daily_pnl);
+                    
+                    performanceChart.data.labels = labels;
+                    performanceChart.data.datasets[0].data = values;
+                    performanceChart.update();
+                }
+                
+                // Update pattern effectiveness
+                const patternsResponse = await axios.get('/api/patterns/effectiveness');
+                const patterns = patternsResponse.data;
+                
+                const patternDiv = document.getElementById('pattern-effectiveness');
+                if (patterns.length === 0) {
+                    patternDiv.innerHTML = '<p class="text-muted">No pattern data available</p>';
+                } else {
+                    patternDiv.innerHTML = patterns.map(p => `
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>${p.pattern_type}</span>
+                            <span>
+                                Win Rate: ${p.win_rate.toFixed(1)}% | 
+                                Avg P&L: $${p.avg_pnl.toFixed(2)}
+                            </span>
+                        </div>
+                    `).join('');
+                }
+                
+            } catch (error) {
+                console.error('Error updating performance:', error);
+            }
+        }
+
+        function updateWorkflowStatus(workflow) {
+            const statusDiv = document.getElementById('workflow-status');
+            const phasesDiv = document.getElementById('workflow-phases');
+            
+            if (!workflow || !workflow.cycle_id) {
+                statusDiv.innerHTML = '<p class="text-muted">No active workflow</p>';
+                phasesDiv.innerHTML = '';
+                return;
+            }
+            
+            statusDiv.innerHTML = `
+                <p><strong>Cycle ID:</strong> ${workflow.cycle_id}</p>
+                <p><strong>Status:</strong> ${workflow.status}</p>
+                <p><strong>Progress:</strong> ${workflow.completed_phases || 0} / 6 phases completed</p>
+            `;
+            
+            // Update phases
+            const phases = [
+                'initialization',
+                'security_selection', 
+                'pattern_analysis',
+                'signal_generation',
+                'trade_execution',
+                'completion'
+            ];
+            
+            phasesDiv.innerHTML = phases.map(phase => {
+                const phaseData = workflow.phases && workflow.phases[phase];
+                let status = 'pending';
+                if (phaseData) {
+                    status = phaseData.status || 'pending';
+                }
+                
+                return `
+                    <div class="workflow-phase ${status}">
+                        ${phase.replace(/_/g, ' ').toUpperCase()}
+                    </div>
+                `;
+            }).join('');
+            
+            updateWorkflowHistory();
+        }
+
+        async function updateWorkflowHistory() {
+            try {
+                const response = await axios.get('/api/workflow/history?limit=5');
+                const history = response.data;
+                
+                const historyDiv = document.getElementById('workflow-history');
+                if (history.length === 0) {
+                    historyDiv.innerHTML = '<p class="text-muted">No workflow history</p>';
+                    return;
+                }
+                
+                historyDiv.innerHTML = history.map(h => `
+                    <div class="mb-3 p-3 border rounded">
+                        <strong>Cycle ${h.cycle_id}</strong> - ${h.status}<br>
+                        Duration: ${h.total_duration_seconds ? h.total_duration_seconds.toFixed(1) + 's' : 'N/A'}<br>
+                        Securities: ${h.securities_scanned}, Signals: ${h.signals_generated}, Trades: ${h.trades_executed}
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error updating workflow history:', error);
+            }
+        }
+
+        async function startTradingCycle() {
+            const resultDiv = document.getElementById('trading-result');
+            resultDiv.innerHTML = '<div class="alert alert-info">Starting trading cycle...</div>';
+            
+            try {
+                const response = await axios.post('/api/trade/start_cycle');
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h5>Trading Cycle Started Successfully!</h5>
+                        <p>Cycle ID: ${response.data.cycle_id}</p>
+                        <p>Status: ${response.data.status}</p>
+                        <p>Securities Scanned: ${response.data.securities_scanned}</p>
+                        <p>Trades Executed: ${response.data.trades_executed}</p>
+                    </div>
+                `;
+                
+                // Refresh data
+                updateTradingData();
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5>Error Starting Trading Cycle</h5>
+                        <p>${error.response?.data?.error || error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function updateScheduleStatus() {
+            try {
+                const response = await axios.get('/api/schedule/status');
+                const status = response.data;
+                
+                const scheduleDiv = document.getElementById('schedule-status');
+                if (status.enabled) {
+                    scheduleDiv.innerHTML = `
+                        <p class="text-success"><strong>Schedule Active</strong></p>
+                        <p>Next run: ${status.next_run || 'Calculating...'}</p>
+                        <p>Interval: ${status.interval_minutes || 30} minutes</p>
+                    `;
+                } else {
+                    scheduleDiv.innerHTML = `
+                        <p class="text-muted">Automated trading is disabled</p>
+                        <p>Click "Configure Schedule" to enable</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error updating schedule status:', error);
+            }
+        }
+
+        async function showScheduleConfig() {
+            try {
+                const response = await axios.get('/api/schedule/config');
+                const config = response.data;
+                
+                document.getElementById('scheduleEnabled').checked = config.enabled || false;
+                document.getElementById('intervalMinutes').value = config.interval_minutes || 30;
+                document.getElementById('marketHoursOnly').checked = config.market_hours_only !== false;
+                document.getElementById('startTime').value = config.start_time || '09:30';
+                document.getElementById('endTime').value = config.end_time || '16:00';
+                
+                scheduleModal.show();
+            } catch (error) {
+                alert('Error loading schedule configuration');
+            }
+        }
+
+        async function saveScheduleConfig() {
+            const config = {
+                enabled: document.getElementById('scheduleEnabled').checked,
+                interval_minutes: parseInt(document.getElementById('intervalMinutes').value),
+                market_hours_only: document.getElementById('marketHoursOnly').checked,
+                start_time: document.getElementById('startTime').value,
+                end_time: document.getElementById('endTime').value
+            };
+            
+            try {
+                await axios.post('/api/schedule/config', config);
+                scheduleModal.hide();
+                updateScheduleStatus();
+                alert('Schedule configuration saved successfully!');
+            } catch (error) {
+                alert('Error saving schedule configuration');
+            }
+        }
+    </script>
+</body>
+</html>
+'''
 
 
 if __name__ == "__main__":

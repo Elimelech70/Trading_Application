@@ -3,7 +3,6 @@ Name of Service: TRADING SYSTEM PHASE 1 - PAPER TRADING
 Version: 1.0.4
 Last Updated: 2025-06-23
 REVISION HISTORY:
-v1.0.5 (2025-06-25) - Fixed Trading logic issues
 v1.0.4 (2025-06-23) - Fixed Jupyter notebook syntax error, improved import handling
 v1.0.3 (2025-06-23) - Added dotenv support to load .env file
 v1.0.2 (2025-06-15) - Updated to use ALPACA_PAPER_API_KEY and ALPACA_PAPER_API_SECRET environment variables
@@ -149,13 +148,8 @@ class PaperTradingService:
         
         for signal in trading_signals:
             try:
-                # Handle both 'signal' and 'signal_type' for backward compatibility
-                signal_value = signal.get('signal') or signal.get('signal_type')
-                if signal_value not in ['BUY', 'SELL']:
+                if signal.get('signal') not in ['BUY', 'SELL']:
                     continue
-                
-                # Update signal to have 'signal' field for consistency
-                signal['signal'] = signal_value
                 
                 trade_result = self._execute_single_trade(signal)
                 if trade_result:
@@ -264,7 +258,7 @@ class PaperTradingService:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 trade_data['symbol'],
-                trade_data['signal'],  # Use the signal field from trade_data
+                trade_data['signal'],
                 trade_data['quantity'],
                 trade_data['entry_price'],
                 trade_data['confidence'],
