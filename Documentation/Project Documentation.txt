@@ -1,0 +1,29 @@
+roject Documentation
+
+Project Methodology
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/TRADING%20SYSTEM%20PROJECT%20METHODOLOGY.md
+
+Project Architecture
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/Trading%20Application%20Architecturec.md
+
+Functional Specifications
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/Trading%20System%20Functional%20Specification%20-%20Service%20Classes%20and%20Procedures.md
+
+Database Schema
+roject Documentation
+
+Project Methodology
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/TRADING%20SYSTEM%20PROJECT%20METHODOLOGY.md
+
+Project Architecture
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/project_documentation/Trading%20Application%20Architecturec.md
+
+Trading System Database Schema Documentation
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Documentation/TRADING%20SYSTEM%20DATABASE%20SCHEMA%20DOCUMENTATION.md
+
+Trading System Functional Specification - Database Schema Addendum
+https://raw.githubusercontent.com/Elimelech70/Trading_Application/refs/heads/main/Documentation/TRADING%20SYSTEM%20FUNCTIONAL%20SPECIFICATION%20-%20DATABASE%20SCHEMA%20ADDENDUM.md
+
+
+
+
