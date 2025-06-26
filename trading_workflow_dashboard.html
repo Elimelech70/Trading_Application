@@ -1,882 +1,634 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Workflow Dashboard</title>
+    <title>Trading Workflow Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0e1a;
+            background-color: #0a0e1a;
             color: #e0e6ed;
-            line-height: 1.6;
-            overflow-x: hidden;
         }
-
-        /* Header */
-        .header {
+        .dashboard-header {
             background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-            padding: 1.5rem 2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .control-panel {
+            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
         }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #00d4ff, #0099ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .workflow-container {
+            background: #1a1f2e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
-
-        .status-indicators {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
+        .phase-card {
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-
-        .indicator-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .indicator-dot.active {
-            background: #00ff88;
-        }
-
-        .indicator-dot.warning {
-            background: #ffaa00;
-        }
-
-        .indicator-dot.error {
-            background: #ff3366;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* Main Container */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* Current Workflow Section */
-        .current-workflow {
-            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
         }
-
-        .workflow-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
+        .phase-card.active {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
         }
-
-        .workflow-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #00d4ff;
+        .phase-card.completed {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: #00ff88;
         }
-
-        .workflow-id {
-            font-size: 0.9rem;
-            color: #8892a6;
-            font-family: 'Courier New', monospace;
+        .phase-card.failed {
+            background: rgba(255, 71, 87, 0.1);
+            border-color: #ff4757;
         }
-
-        /* Progress Timeline */
-        .progress-timeline {
-            position: relative;
-            padding: 2rem 0;
-        }
-
-        .timeline-line {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-50%);
-        }
-
-        .timeline-progress {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #00ff88, #00d4ff);
-            transform: translateY(-50%);
-            transition: width 0.5s ease;
-        }
-
-        .timeline-phases {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            z-index: 1;
-        }
-
-        .phase-node {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .phase-node:hover {
-            transform: translateY(-2px);
-        }
-
-        .phase-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
+        .btn-trade {
+            background: linear-gradient(45deg, #00d4ff, #0099ff);
+            border: none;
+            padding: 12px 40px;
             font-weight: bold;
-            transition: all 0.3s;
-            position: relative;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            transition: all 0.3s ease;
         }
-
-        .phase-circle.pending {
-            background: #2a2f3e;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .phase-circle.running {
-            background: #0099ff;
-            border: 2px solid #00d4ff;
-            animation: phaseRunning 2s infinite;
-        }
-
-        .phase-circle.completed {
-            background: #00ff88;
-            border: 2px solid #00ff88;
-        }
-
-        .phase-circle.failed {
-            background: #ff3366;
-            border: 2px solid #ff3366;
-        }
-
-        @keyframes phaseRunning {
-            0% { box-shadow: 0 0 0 0 rgba(0, 153, 255, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(0, 153, 255, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 153, 255, 0); }
-        }
-
-        .phase-label {
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            text-align: center;
-            max-width: 100px;
-        }
-
-        .phase-time {
-            font-size: 0.75rem;
-            color: #8892a6;
-            margin-top: 0.25rem;
-        }
-
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .metric-card {
-            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .metric-card:hover {
+        .btn-trade:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
         }
-
-        .metric-label {
-            font-size: 0.9rem;
-            color: #8892a6;
-            margin-bottom: 0.5rem;
+        .btn-schedule {
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            border: none;
+            padding: 10px 30px;
+            font-weight: bold;
+            border-radius: 5px;
         }
-
+        .schedule-status {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .metric {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin: 5px;
+        }
         .metric-value {
             font-size: 2rem;
             font-weight: bold;
-            background: linear-gradient(45deg, #00d4ff, #0099ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .metric-change {
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-        }
-
-        .metric-change.positive {
-            color: #00ff88;
-        }
-
-        .metric-change.negative {
-            color: #ff3366;
-        }
-
-        /* Tables */
-        .data-section {
-            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .section-title {
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
             color: #00d4ff;
         }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
+        .timeline {
+            position: relative;
+            padding: 20px 0;
         }
-
-        .data-table th {
-            text-align: left;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            font-weight: 600;
-            color: #8892a6;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 20px;
         }
-
-        .data-table td {
-            padding: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
         }
-
-        .data-table tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 15px;
+            width: 2px;
+            height: calc(100% + 10px);
+            background: rgba(255, 255, 255, 0.1);
         }
-
-        /* Service Health Grid */
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
+        .timeline-item:last-child::after {
+            display: none;
         }
-
-        .service-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 1rem;
-            display: flex;
+        .back-link {
+            color: #00d4ff;
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            transition: all 0.2s;
+            margin-bottom: 20px;
         }
-
-        .service-card:hover {
-            background: rgba(255, 255, 255, 0.08);
+        .back-link:hover {
+            color: #0099ff;
         }
-
-        .service-name {
-            font-size: 0.9rem;
+        .alert-custom {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
         }
-
-        .service-status {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+        .alert-success-custom {
+            border-color: #00ff88;
+            color: #00ff88;
         }
-
-        .service-status.healthy {
-            background: #00ff88;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        .alert-danger-custom {
+            border-color: #ff4757;
+            color: #ff4757;
         }
-
-        .service-status.unhealthy {
-            background: #ff3366;
-            box-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
-        }
-
-        /* Charts Container */
-        .charts-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-card {
-            background: linear-gradient(135deg, #1a1f2e 0%, #151922 100%);
-            border-radius: 12px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .chart-canvas {
-            width: 100%;
-            height: 300px;
-            margin-top: 1rem;
-        }
-
-        /* Loading Spinner */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #00d4ff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .charts-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .timeline-phases {
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
+        .alert-info-custom {
+            border-color: #00d4ff;
+            color: #00d4ff;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">Trading Workflow Monitor</div>
-            <div class="status-indicators">
-                <div class="indicator">
-                    <div class="indicator-dot active"></div>
-                    <span>System Active</span>
-                </div>
-                <div class="indicator">
-                    <div class="indicator-dot active"></div>
-                    <span>Market Open</span>
-                </div>
-                <div class="indicator">
-                    <span id="current-time">00:00:00</span>
-                </div>
-            </div>
+    <div class="container mt-4">
+        <!-- Back to Dashboard -->
+        <a href="/" class="back-link">
+            ← Back to System Dashboard
+        </a>
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Trading Workflow Monitor</h1>
+            <p class="mb-0">Real-time monitoring of trading workflow execution with integrated controls</p>
         </div>
-    </header>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Current Workflow Section -->
-        <div class="current-workflow">
-            <div class="workflow-header">
-                <div>
-                    <div class="workflow-title">Current Trading Cycle</div>
-                    <div class="workflow-id" id="current-cycle-id">CYCLE-20250113-143022</div>
+        <!-- Trading Controls Panel -->
+        <div class="control-panel">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h4>Trading Controls</h4>
+                    <button class="btn btn-trade mt-2" onclick="startTradingCycle()">
+                        🚀 Start Trading Cycle
+                    </button>
                 </div>
-                <div>
-                    <span id="workflow-status" style="font-size: 0.9rem; padding: 0.5rem 1rem; background: rgba(0, 255, 136, 0.2); color: #00ff88; border-radius: 20px;">Running</span>
+                <div class="col-md-4">
+                    <h4>Schedule Status</h4>
+                    <div class="schedule-status" id="schedule-status">
+                        <p class="mb-0">Loading schedule...</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h4>Schedule Configuration</h4>
+                    <button class="btn btn-schedule mt-2" onclick="showScheduleConfig()">
+                        ⚙️ Configure Schedule
+                    </button>
                 </div>
             </div>
+            
+            <!-- Trading Result Display -->
+            <div id="trading-result" class="mt-3"></div>
+        </div>
 
-            <!-- Progress Timeline -->
-            <div class="progress-timeline">
-                <div class="timeline-line"></div>
-                <div class="timeline-progress" id="timeline-progress" style="width: 33%;"></div>
-                <div class="timeline-phases">
-                    <div class="phase-node" data-phase="initialization">
-                        <div class="phase-circle completed">1</div>
-                        <div class="phase-label">Initialization</div>
-                        <div class="phase-time">0.2s</div>
+        <!-- Current Workflow Status -->
+        <div class="workflow-container">
+            <h3>Current Workflow Status</h3>
+            <div class="row mt-3">
+                <div class="col-md-3">
+                    <div class="metric">
+                        <small>Cycle ID</small>
+                        <div class="metric-value" id="cycle-id">-</div>
                     </div>
-                    <div class="phase-node" data-phase="security_selection">
-                        <div class="phase-circle completed">2</div>
-                        <div class="phase-label">Security Selection</div>
-                        <div class="phase-time">4.8s</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric">
+                        <small>Status</small>
+                        <div class="metric-value" id="workflow-status">Idle</div>
                     </div>
-                    <div class="phase-node" data-phase="pattern_analysis">
-                        <div class="phase-circle running">3</div>
-                        <div class="phase-label">Pattern Analysis</div>
-                        <div class="phase-time">--</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric">
+                        <small>Progress</small>
+                        <div class="metric-value" id="progress">0/6</div>
                     </div>
-                    <div class="phase-node" data-phase="signal_generation">
-                        <div class="phase-circle pending">4</div>
-                        <div class="phase-label">Signal Generation</div>
-                        <div class="phase-time">--</div>
-                    </div>
-                    <div class="phase-node" data-phase="trade_execution">
-                        <div class="phase-circle pending">5</div>
-                        <div class="phase-label">Trade Execution</div>
-                        <div class="phase-time">--</div>
-                    </div>
-                    <div class="phase-node" data-phase="completion">
-                        <div class="phase-circle pending">6</div>
-                        <div class="phase-label">Completion</div>
-                        <div class="phase-time">--</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric">
+                        <small>Duration</small>
+                        <div class="metric-value" id="duration">0s</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Metrics Grid -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">Securities Scanned</div>
-                <div class="metric-value" id="securities-scanned">247</div>
-                <div class="metric-change positive">↑ 12% from avg</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Patterns Detected</div>
-                <div class="metric-value" id="patterns-detected">18</div>
-                <div class="metric-change positive">↑ 5% from avg</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Signals Generated</div>
-                <div class="metric-value" id="signals-generated">6</div>
-                <div class="metric-change negative">↓ 2% from avg</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Trades Executed</div>
-                <div class="metric-value" id="trades-executed">4</div>
-                <div class="metric-change positive">↑ 8% from avg</div>
+        <!-- Workflow Phases -->
+        <div class="workflow-container">
+            <h3>Workflow Phases</h3>
+            <div class="row mt-3" id="phases-container">
+                <!-- Phases will be dynamically populated -->
             </div>
         </div>
 
-        <!-- Service Health -->
-        <div class="data-section">
-            <h3 class="section-title">Service Health</h3>
-            <div class="services-grid">
-                <div class="service-card">
-                    <span class="service-name">Coordination Service</span>
-                    <div class="service-status healthy"></div>
-                </div>
-                <div class="service-card">
-                    <span class="service-name">Security Scanner</span>
-                    <div class="service-status healthy"></div>
-                </div>
-                <div class="service-card">
-                    <span class="service-name">Pattern Analysis</span>
-                    <div class="service-status healthy"></div>
-                </div>
-                <div class="service-card">
-                    <span class="service-name">Technical Analysis</span>
-                    <div class="service-status healthy"></div>
-                </div>
-                <div class="service-card">
-                    <span class="service-name">Paper Trading</span>
-                    <div class="service-status healthy"></div>
-                </div>
-                <div class="service-card">
-                    <span class="service-name">News Service</span>
-                    <div class="service-status unhealthy"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts -->
-        <div class="charts-container">
-            <div class="chart-card">
-                <h3 class="section-title">Phase Performance (Avg Duration)</h3>
-                <canvas id="phaseChart" class="chart-canvas"></canvas>
-            </div>
-            <div class="chart-card">
-                <h3 class="section-title">Success Rate Trend</h3>
-                <canvas id="successChart" class="chart-canvas"></canvas>
+        <!-- Phase Timeline -->
+        <div class="workflow-container">
+            <h3>Execution Timeline</h3>
+            <div class="timeline" id="timeline">
+                <p class="text-muted">No workflow activity</p>
             </div>
         </div>
 
         <!-- Recent Workflows -->
-        <div class="data-section">
-            <h3 class="section-title">Recent Workflow History</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Cycle ID</th>
-                        <th>Start Time</th>
-                        <th>Duration</th>
-                        <th>Securities</th>
-                        <th>Patterns</th>
-                        <th>Signals</th>
-                        <th>Trades</th>
-                        <th>Success Rate</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="workflow-history">
-                    <tr>
-                        <td style="font-family: monospace; font-size: 0.85rem;">CYCLE-20250113-142522</td>
-                        <td>14:25:22</td>
-                        <td>28.4s</td>
-                        <td>245</td>
-                        <td>22</td>
-                        <td>8</td>
-                        <td>5</td>
-                        <td><span style="color: #00ff88;">87.5%</span></td>
-                        <td><span style="color: #00ff88;">Completed</span></td>
-                    </tr>
-                    <tr>
-                        <td style="font-family: monospace; font-size: 0.85rem;">CYCLE-20250113-142022</td>
-                        <td>14:20:22</td>
-                        <td>31.2s</td>
-                        <td>248</td>
-                        <td>19</td>
-                        <td>7</td>
-                        <td>4</td>
-                        <td><span style="color: #00ff88;">75.0%</span></td>
-                        <td><span style="color: #00ff88;">Completed</span></td>
-                    </tr>
-                    <tr>
-                        <td style="font-family: monospace; font-size: 0.85rem;">CYCLE-20250113-141522</td>
-                        <td>14:15:22</td>
-                        <td>29.8s</td>
-                        <td>242</td>
-                        <td>15</td>
-                        <td>5</td>
-                        <td>3</td>
-                        <td><span style="color: #ffaa00;">66.7%</span></td>
-                        <td><span style="color: #00ff88;">Completed</span></td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="workflow-container">
+            <h3>Recent Workflow History</h3>
+            <div id="workflow-history">
+                <p class="text-muted">Loading history...</p>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Schedule Configuration Modal -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Trading Schedule Configuration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="scheduleForm">
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="scheduleEnabled">
+                                <label class="form-check-label" for="scheduleEnabled">
+                                    Enable Automated Trading
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="intervalMinutes" class="form-label">Trading Interval (minutes)</label>
+                            <input type="number" class="form-control bg-dark text-light" id="intervalMinutes" value="30" min="5" max="240">
+                            <small class="text-muted">How often to run trading cycles</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="marketHoursOnly" checked>
+                                <label class="form-check-label" for="marketHoursOnly">
+                                    Trade only during market hours
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col">
+                                <label for="startTime" class="form-label">Start Time</label>
+                                <input type="time" class="form-control bg-dark text-light" id="startTime" value="09:30">
+                            </div>
+                            <div class="col">
+                                <label for="endTime" class="form-label">End Time</label>
+                                <input type="time" class="form-control bg-dark text-light" id="endTime" value="16:00">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveScheduleConfig()">Save Schedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleTimeString();
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
-
-        // Phase Performance Chart
-        const phaseCtx = document.getElementById('phaseChart').getContext('2d');
-        const phaseChart = new Chart(phaseCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Init', 'Security Scan', 'Pattern Analysis', 'Signal Gen', 'Trade Exec', 'Completion'],
-                datasets: [{
-                    label: 'Average Duration (seconds)',
-                    data: [0.3, 5.2, 8.4, 3.1, 2.8, 0.5],
-                    backgroundColor: 'rgba(0, 212, 255, 0.6)',
-                    borderColor: 'rgba(0, 212, 255, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#8892a6'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#8892a6'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Success Rate Chart
-        const successCtx = document.getElementById('successChart').getContext('2d');
-        const successChart = new Chart(successCtx, {
-            type: 'line',
-            data: {
-                labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
-                datasets: [{
-                    label: 'Success Rate',
-                    data: [72, 75, 71, 78, 82, 85],
-                    borderColor: 'rgba(0, 255, 136, 1)',
-                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#8892a6',
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#8892a6'
-                        }
-                    }
-                }
-            }
-        });
-
-        // WebSocket connection for real-time updates
-        let ws;
-        function connectWebSocket() {
-            // In production, this would connect to your Flask-SocketIO server
-            // ws = new WebSocket('ws://localhost:5000/workflow-updates');
+        let socket;
+        let scheduleModal;
+        let currentWorkflow = null;
+        let updateInterval;
+        
+        // Phase definitions
+        const phases = [
+            {id: 'initialization', name: 'Initialization', icon: '🚀'},
+            {id: 'security_selection', name: 'Security Selection', icon: '🔍'},
+            {id: 'pattern_analysis', name: 'Pattern Analysis', icon: '📊'},
+            {id: 'signal_generation', name: 'Signal Generation', icon: '📡'},
+            {id: 'trade_execution', name: 'Trade Execution', icon: '💹'},
+            {id: 'completion', name: 'Completion', icon: '✅'}
+        ];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+            initializePhases();
+            initializeWebSocket();
+            updateWorkflowData();
+            updateScheduleStatus();
             
-            // Simulate real-time updates for demo
-            simulateUpdates();
-        }
-
-        // Simulate workflow updates
-        function simulateUpdates() {
-            let progress = 33;
-            const phases = ['initialization', 'security_selection', 'pattern_analysis', 'signal_generation', 'trade_execution', 'completion'];
-            let currentPhaseIndex = 2;
-
-            setInterval(() => {
-                // Update progress
-                progress = Math.min(progress + Math.random() * 5, 100);
-                document.getElementById('timeline-progress').style.width = progress + '%';
-
-                // Update phase status
-                if (progress > (currentPhaseIndex + 1) * 16.67) {
-                    const currentPhase = document.querySelector(`[data-phase="${phases[currentPhaseIndex]}"] .phase-circle`);
-                    currentPhase.classList.remove('running');
-                    currentPhase.classList.add('completed');
-                    
-                    // Add completion time
-                    const timeElement = currentPhase.parentElement.querySelector('.phase-time');
-                    timeElement.textContent = (Math.random() * 10 + 2).toFixed(1) + 's';
-
-                    currentPhaseIndex++;
-                    if (currentPhaseIndex < phases.length) {
-                        const nextPhase = document.querySelector(`[data-phase="${phases[currentPhaseIndex]}"] .phase-circle`);
-                        nextPhase.classList.remove('pending');
-                        nextPhase.classList.add('running');
-                    }
-                }
-
-                // Update metrics with some variation
-                const metrics = {
-                    'securities-scanned': Math.floor(240 + Math.random() * 20),
-                    'patterns-detected': Math.floor(15 + Math.random() * 10),
-                    'signals-generated': Math.floor(4 + Math.random() * 6),
-                    'trades-executed': Math.floor(2 + Math.random() * 5)
-                };
-
-                for (const [id, value] of Object.entries(metrics)) {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        element.textContent = value;
-                    }
-                }
-
-                // Complete workflow
-                if (progress >= 100) {
-                    document.getElementById('workflow-status').textContent = 'Completed';
-                    document.getElementById('workflow-status').style.background = 'rgba(0, 255, 136, 0.2)';
-                    document.getElementById('workflow-status').style.color = '#00ff88';
-                }
+            // Update every 2 seconds
+            updateInterval = setInterval(() => {
+                updateWorkflowData();
+                updateScheduleStatus();
             }, 2000);
-        }
-
-        // API Integration Functions
-        async function fetchWorkflowStatus() {
-            try {
-                const response = await fetch('http://localhost:5010/api/workflow/current');
-                const data = await response.json();
-                updateWorkflowDisplay(data);
-            } catch (error) {
-                console.error('Error fetching workflow status:', error);
-            }
-        }
-
-        async function fetchWorkflowHistory() {
-            try {
-                const response = await fetch('http://localhost:5010/api/workflow/history?limit=10');
-                const data = await response.json();
-                updateHistoryTable(data);
-            } catch (error) {
-                console.error('Error fetching workflow history:', error);
-            }
-        }
-
-        async function fetchServiceHealth() {
-            try {
-                const response = await fetch('http://localhost:5010/api/services/health');
-                const data = await response.json();
-                updateServiceHealth(data);
-            } catch (error) {
-                console.error('Error fetching service health:', error);
-            }
-        }
-
-        function updateWorkflowDisplay(data) {
-            // Update cycle ID
-            document.getElementById('current-cycle-id').textContent = data.cycle_id;
-            
-            // Update status
-            const statusElement = document.getElementById('workflow-status');
-            statusElement.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
-            
-            // Update progress
-            const progress = (data.completed_phases / 6) * 100;
-            document.getElementById('timeline-progress').style.width = progress + '%';
-            
-            // Update metrics
-            document.getElementById('securities-scanned').textContent = data.metrics.securities_scanned;
-            document.getElementById('patterns-detected').textContent = data.metrics.patterns_detected;
-            document.getElementById('signals-generated').textContent = data.metrics.signals_generated;
-            document.getElementById('trades-executed').textContent = data.metrics.trades_executed;
-            
-            // Update phase statuses
-            for (const [phase, details] of Object.entries(data.phases)) {
-                const phaseElement = document.querySelector(`[data-phase="${phase}"] .phase-circle`);
-                if (phaseElement) {
-                    phaseElement.className = `phase-circle ${details.status}`;
-                    if (details.duration_seconds) {
-                        const timeElement = phaseElement.parentElement.querySelector('.phase-time');
-                        timeElement.textContent = details.duration_seconds.toFixed(1) + 's';
-                    }
-                }
-            }
-        }
-
-        function updateHistoryTable(history) {
-            const tbody = document.getElementById('workflow-history');
-            tbody.innerHTML = history.map(workflow => `
-                <tr>
-                    <td style="font-family: monospace; font-size: 0.85rem;">${workflow.cycle_id}</td>
-                    <td>${new Date(workflow.start_time).toLocaleTimeString()}</td>
-                    <td>${workflow.duration_seconds ? workflow.duration_seconds.toFixed(1) + 's' : '--'}</td>
-                    <td>${workflow.metrics.securities_scanned}</td>
-                    <td>${workflow.metrics.patterns_detected}</td>
-                    <td>${workflow.metrics.signals_generated}</td>
-                    <td>${workflow.metrics.trades_executed}</td>
-                    <td><span style="color: ${workflow.success_rate > 0.7 ? '#00ff88' : '#ffaa00'};">${(workflow.success_rate * 100).toFixed(1)}%</span></td>
-                    <td><span style="color: ${workflow.status === 'completed' ? '#00ff88' : '#ff3366'};">${workflow.status.charAt(0).toUpperCase() + workflow.status.slice(1)}</span></td>
-                </tr>
+        });
+        
+        function initializePhases() {
+            const container = document.getElementById('phases-container');
+            container.innerHTML = phases.map(phase => `
+                <div class="col-md-4 col-lg-2">
+                    <div class="phase-card" id="phase-${phase.id}">
+                        <div class="text-center">
+                            <div style="font-size: 2rem;">${phase.icon}</div>
+                            <h6 class="mt-2">${phase.name}</h6>
+                            <small class="phase-status">Pending</small>
+                        </div>
+                    </div>
+                </div>
             `).join('');
         }
-
-        function updateServiceHealth(health) {
-            const services = document.querySelectorAll('.service-card');
-            services.forEach(service => {
-                const serviceName = service.querySelector('.service-name').textContent;
-                const statusDot = service.querySelector('.service-status');
-                const serviceKey = serviceName.toLowerCase().replace(/\s+/g, '_');
-                
-                if (health[serviceKey]) {
-                    statusDot.className = 'service-status healthy';
-                } else {
-                    statusDot.className = 'service-status unhealthy';
-                }
+        
+        function initializeWebSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Connected to workflow monitor');
+                socket.emit('subscribe_updates', {type: 'workflow'});
+            });
+            
+            socket.on('workflow_update', function(data) {
+                updateWorkflowStatus(data);
             });
         }
-
-        // Initialize on load
-        window.addEventListener('load', () => {
-            connectWebSocket();
+        
+        async function updateWorkflowData() {
+            try {
+                const response = await axios.get('/api/workflow/current');
+                if (response.status === 200) {
+                    updateWorkflowStatus(response.data);
+                    updateWorkflowHistory();
+                }
+            } catch (error) {
+                if (error.response && error.response.status === 404) {
+                    resetWorkflowDisplay();
+                }
+            }
+        }
+        
+        function updateWorkflowStatus(workflow) {
+            if (!workflow || !workflow.cycle_id) {
+                resetWorkflowDisplay();
+                return;
+            }
             
-            // In production, these would fetch real data
-            // fetchWorkflowStatus();
-            // fetchWorkflowHistory();
-            // fetchServiceHealth();
+            currentWorkflow = workflow;
             
-            // Refresh data periodically
-            // setInterval(fetchWorkflowStatus, 5000);
-            // setInterval(fetchServiceHealth, 10000);
-        });
+            // Update metrics
+            document.getElementById('cycle-id').textContent = workflow.cycle_id;
+            document.getElementById('workflow-status').textContent = workflow.status || 'Unknown';
+            document.getElementById('progress').textContent = 
+                `${workflow.completed_phases || 0}/6`;
+            
+            // Update duration
+            if (workflow.started_at) {
+                const start = new Date(workflow.started_at);
+                const end = workflow.completed_at ? new Date(workflow.completed_at) : new Date();
+                const duration = Math.floor((end - start) / 1000);
+                document.getElementById('duration').textContent = `${duration}s`;
+            }
+            
+            // Update phases
+            phases.forEach(phase => {
+                const phaseElement = document.getElementById(`phase-${phase.id}`);
+                const statusElement = phaseElement.querySelector('.phase-status');
+                
+                if (workflow.phases && workflow.phases[phase.id]) {
+                    const phaseData = workflow.phases[phase.id];
+                    phaseElement.className = `phase-card ${phaseData.status}`;
+                    statusElement.textContent = phaseData.status.charAt(0).toUpperCase() + 
+                                              phaseData.status.slice(1);
+                } else {
+                    phaseElement.className = 'phase-card';
+                    statusElement.textContent = 'Pending';
+                }
+            });
+            
+            // Update timeline
+            updateTimeline(workflow);
+        }
+        
+        function updateTimeline(workflow) {
+            const timeline = document.getElementById('timeline');
+            
+            if (!workflow.phases) {
+                timeline.innerHTML = '<p class="text-muted">No workflow activity</p>';
+                return;
+            }
+            
+            const timelineItems = [];
+            
+            phases.forEach(phase => {
+                if (workflow.phases[phase.id]) {
+                    const phaseData = workflow.phases[phase.id];
+                    if (phaseData.started_at) {
+                        const time = new Date(phaseData.started_at).toLocaleTimeString();
+                        let message = `${phase.icon} ${phase.name} started`;
+                        
+                        if (phaseData.status === 'completed' && phaseData.completed_at) {
+                            const duration = Math.floor(
+                                (new Date(phaseData.completed_at) - new Date(phaseData.started_at)) / 1000
+                            );
+                            message += ` (completed in ${duration}s)`;
+                        } else if (phaseData.status === 'failed') {
+                            message += ' (failed)';
+                        }
+                        
+                        timelineItems.push({
+                            time: time,
+                            message: message,
+                            status: phaseData.status
+                        });
+                    }
+                }
+            });
+            
+            if (timelineItems.length === 0) {
+                timeline.innerHTML = '<p class="text-muted">No workflow activity</p>';
+                return;
+            }
+            
+            timeline.innerHTML = timelineItems.map(item => `
+                <div class="timeline-item">
+                    <strong>${item.time}</strong><br>
+                    <span class="${item.status === 'failed' ? 'text-danger' : ''}">${item.message}</span>
+                </div>
+            `).join('');
+        }
+        
+        function resetWorkflowDisplay() {
+            document.getElementById('cycle-id').textContent = '-';
+            document.getElementById('workflow-status').textContent = 'Idle';
+            document.getElementById('progress').textContent = '0/6';
+            document.getElementById('duration').textContent = '0s';
+            
+            phases.forEach(phase => {
+                const phaseElement = document.getElementById(`phase-${phase.id}`);
+                phaseElement.className = 'phase-card';
+                phaseElement.querySelector('.phase-status').textContent = 'Pending';
+            });
+            
+            document.getElementById('timeline').innerHTML = '<p class="text-muted">No workflow activity</p>';
+        }
+        
+        async function updateWorkflowHistory() {
+            try {
+                const response = await axios.get('/api/workflow/history?limit=5');
+                const history = response.data;
+                
+                const historyDiv = document.getElementById('workflow-history');
+                if (history.length === 0) {
+                    historyDiv.innerHTML = '<p class="text-muted">No workflow history</p>';
+                    return;
+                }
+                
+                historyDiv.innerHTML = history.map(h => {
+                    const statusClass = h.status === 'completed' ? 'success' : 
+                                      h.status === 'failed' ? 'danger' : 'info';
+                    
+                    return `
+                        <div class="alert-custom alert-${statusClass}-custom mb-3">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Cycle ${h.cycle_id}</strong><br>
+                                    <small>${new Date(h.created_at).toLocaleString()}</small>
+                                </div>
+                                <div class="col-md-3">
+                                    Status: <strong>${h.status}</strong><br>
+                                    Duration: ${h.total_duration_seconds ? h.total_duration_seconds.toFixed(1) + 's' : 'N/A'}
+                                </div>
+                                <div class="col-md-3">
+                                    Securities: ${h.securities_scanned || 0}<br>
+                                    Patterns: ${h.patterns_analyzed || 0}
+                                </div>
+                                <div class="col-md-3">
+                                    Signals: ${h.signals_generated || 0}<br>
+                                    Trades: ${h.trades_executed || 0}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error updating workflow history:', error);
+            }
+        }
+        
+        // Trading Control Functions
+        async function startTradingCycle() {
+            const resultDiv = document.getElementById('trading-result');
+            resultDiv.innerHTML = '<div class="alert-custom alert-info-custom">🔄 Starting trading cycle...</div>';
+            
+            try {
+                const response = await axios.post('/api/trade/start_cycle');
+                resultDiv.innerHTML = `
+                    <div class="alert-custom alert-success-custom">
+                        <h5>✅ Trading Cycle Started Successfully!</h5>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Cycle ID:</strong> ${response.data.cycle_id}<br>
+                                <strong>Status:</strong> ${response.data.status}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Securities Scanned:</strong> ${response.data.securities_scanned || 0}<br>
+                                <strong>Trades Executed:</strong> ${response.data.trades_executed || 0}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Refresh workflow data immediately
+                updateWorkflowData();
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert-custom alert-danger-custom">
+                        <h5>❌ Error Starting Trading Cycle</h5>
+                        <p>${error.response?.data?.error || error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function updateScheduleStatus() {
+            try {
+                const response = await axios.get('/api/schedule/status');
+                const status = response.data;
+                
+                const scheduleDiv = document.getElementById('schedule-status');
+                if (status.enabled) {
+                    scheduleDiv.innerHTML = `
+                        <p class="mb-0 text-success">✅ <strong>Schedule Active</strong></p>
+                        <small>Next run: ${status.next_run || 'Calculating...'}</small><br>
+                        <small>Interval: Every ${status.interval_minutes || 30} minutes</small>
+                    `;
+                } else {
+                    scheduleDiv.innerHTML = `
+                        <p class="mb-0 text-muted">⏸️ Automated trading disabled</p>
+                        <small>Click "Configure Schedule" to enable</small>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('schedule-status').innerHTML = 
+                    '<p class="mb-0 text-danger">❌ Unable to load schedule</p>';
+            }
+        }
+        
+        async function showScheduleConfig() {
+            try {
+                const response = await axios.get('/api/schedule/config');
+                const config = response.data;
+                
+                document.getElementById('scheduleEnabled').checked = config.enabled || false;
+                document.getElementById('intervalMinutes').value = config.interval_minutes || 30;
+                document.getElementById('marketHoursOnly').checked = config.market_hours_only !== false;
+                document.getElementById('startTime').value = config.start_time || '09:30';
+                document.getElementById('endTime').value = config.end_time || '16:00';
+                
+                scheduleModal.show();
+            } catch (error) {
+                alert('Error loading schedule configuration');
+            }
+        }
+        
+        async function saveScheduleConfig() {
+            const config = {
+                enabled: document.getElementById('scheduleEnabled').checked,
+                interval_minutes: parseInt(document.getElementById('intervalMinutes').value),
+                market_hours_only: document.getElementById('marketHoursOnly').checked,
+                start_time: document.getElementById('startTime').value,
+                end_time: document.getElementById('endTime').value
+            };
+            
+            try {
+                await axios.post('/api/schedule/config', config);
+                scheduleModal.hide();
+                updateScheduleStatus();
+                
+                // Show success message
+                const resultDiv = document.getElementById('trading-result');
+                resultDiv.innerHTML = `
+                    <div class="alert-custom alert-success-custom">
+                        ✅ Schedule configuration saved successfully!
+                    </div>
+                `;
+                
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    resultDiv.innerHTML = '';
+                }, 3000);
+            } catch (error) {
+                alert('Error saving schedule configuration');
+            }
+        }
     </script>
 </body>
 </html>

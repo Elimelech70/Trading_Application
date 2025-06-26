@@ -1,0 +1,33 @@
+
+MANUAL INSTRUCTIONS TO FIX SCHEDULE CONFIGURATION
+================================================
+
+Since your coordination service already has some scheduling functionality
+(as evidenced by the working /schedule/status endpoint), here are the
+manual steps to add the missing /schedule/config endpoints:
+
+1. Open coordination_service.py in your editor
+
+2. Find the /schedule/status route in the _setup_routes method
+
+3. Add the /schedule/config route right after it (see schedule_config_patch.py)
+
+4. In the __init__ method, add:
+   - self._load_schedule_config() after logger initialization
+
+5. Add the helper methods at the class level:
+   - _load_schedule_config()
+   - _set_default_schedule_config()
+
+6. Save the file and restart the coordination service
+
+The patch code handles:
+- GET /schedule/config - Returns current configuration
+- POST /schedule/config - Updates and saves configuration
+- Persistence via schedule_config.json file
+- Integration with existing scheduler_enabled flag
+
+After applying these changes:
+1. Stop the coordination service (Ctrl+C)
+2. Start it again: python coordination_service.py
+3. The "Configure Schedule" button should now work!

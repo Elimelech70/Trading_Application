@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "interval_minutes": 30,
+  "market_hours_only": true,
+  "start_time": "09:30",
+  "end_time": "16:00",
+  "timezone": "America/New_York",
+  "excluded_days": [
+    "Saturday",
+    "Sunday"
+  ]
+}
