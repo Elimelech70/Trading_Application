@@ -1,9 +1,8 @@
 """
 Name of Service: TRADING SYSTEM PHASE 1 - COORDINATION SERVICE
-Version: 1.1.0
+Version: 1.0.9
 Last Updated: 2025-06-26
 REVISION HISTORY:
-v1.1.0 (2025-06-26) - Enhanced workflow status API with phases data from workflow_tracking table, fixed timezone to Asia/Singapore (+8 UTC)
 v1.0.9 (2025-06-26) - Fixed database persistence for service registrations and workflow tracking
 v1.0.8 (2025-06-24) - Added missing API endpoints for web dashboard compatibility 
 v1.0.7 (2025-06-23) - Enhanced workflow tracking and database integration
@@ -44,7 +43,7 @@ class CoordinationService:
         self.app = Flask(__name__)
         self.port = port
         self.db_path = db_path
-        self.service_version = "1.1.0"
+        self.service_version = "1.0.9"
         self.logger = self._setup_logging()
         
         # Initialize database utilities if available
@@ -420,49 +419,9 @@ class CoordinationService:
         
         @self.app.route('/api/workflow_status', methods=['GET'])
         def api_workflow_status():
-            """Get current workflow status with phases data (web dashboard compatible)"""
+            """Get current workflow status (web dashboard compatible)"""
             if self.current_workflow:
-                # Add phases data from database
-                workflow_data = self.current_workflow.copy()
-                
-                # Get phases from workflow_tracking table
-                try:
-                    conn = self.get_db_connection()
-                    cursor = conn.cursor()
-                    
-                    cursor.execute('''
-                        SELECT phase, status, start_time, end_time, duration_seconds
-                        FROM workflow_tracking 
-                        WHERE cycle_id = ?
-                        ORDER BY created_at
-                    ''', (workflow_data['cycle_id'],))
-                    
-                    phases_data = {}
-                    completed_phases = 0
-                    
-                    for row in cursor.fetchall():
-                        phase_name = row[0]
-                        phase_status = row[1]
-                        phases_data[phase_name] = {
-                            'status': phase_status,
-                            'start_time': row[2],
-                            'end_time': row[3],
-                            'duration_seconds': row[4]
-                        }
-                        if phase_status == 'completed':
-                            completed_phases += 1
-                    
-                    workflow_data['phases'] = phases_data
-                    workflow_data['completed_phases'] = completed_phases
-                    
-                    conn.close()
-                    
-                except Exception as e:
-                    self.logger.error(f"Error getting phases data: {e}")
-                    workflow_data['phases'] = {}
-                    workflow_data['completed_phases'] = 0
-                
-                return jsonify(workflow_data)
+                return jsonify(self.current_workflow)
             else:
                 # Get latest workflow from database
                 try:
@@ -478,44 +437,15 @@ class CoordinationService:
                     
                     row = cursor.fetchone()
                     if row:
-                        workflow_data = {
+                        return jsonify({
                             "cycle_id": row[0],
                             "status": row[1],
                             "start_time": row[2],
                             "end_time": row[3],
                             "securities_scanned": row[4],
-                            "patterns_found": row[5] or 0,
+                            "patterns_found": row[5],
                             "trades_executed": row[6]
-                        }
-                        
-                        # Get phases for this cycle
-                        cursor.execute('''
-                            SELECT phase, status, start_time, end_time, duration_seconds
-                            FROM workflow_tracking 
-                            WHERE cycle_id = ?
-                            ORDER BY created_at
-                        ''', (workflow_data['cycle_id'],))
-                        
-                        phases_data = {}
-                        completed_phases = 0
-                        
-                        for phase_row in cursor.fetchall():
-                            phase_name = phase_row[0]
-                            phase_status = phase_row[1]
-                            phases_data[phase_name] = {
-                                'status': phase_status,
-                                'start_time': phase_row[2],
-                                'end_time': phase_row[3],
-                                'duration_seconds': phase_row[4]
-                            }
-                            if phase_status == 'completed':
-                                completed_phases += 1
-                        
-                        workflow_data['phases'] = phases_data
-                        workflow_data['completed_phases'] = completed_phases
-                        
-                        conn.close()
-                        return jsonify(workflow_data)
+                        })
                     else:
                         return jsonify({"status": "No active workflow"})
                         

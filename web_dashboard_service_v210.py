@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
 Name of Service: Web Dashboard Service
-Filename: web_dashboard.py
-Version: 2.1.1
-Last Updated: 2025-06-26
+Filename: web_dashboard_service.py
+Version: 2.1.0
+Last Updated: 2025-01-27
 REVISION HISTORY:
-v2.1.1 (2025-06-26) - Fixed endpoint compatibility with coordination service v1.0.9
 v2.1.0 (2025-01-27) - Separated trading dashboard from main system health dashboard
 v2.0.0 (2025-06-24) - Provides comprehensive trading system monitoring with integrated workflow tracking
 v1.0.4 (2025-06-19) - Added Trade tab with trading controls and schedule display
@@ -28,12 +27,7 @@ import time
 import requests
 
 # Import workflow tracking components
-try:
-    from trading_workflow_tracker import TradingWorkflowTracker, WorkflowPhase
-    WORKFLOW_TRACKER_AVAILABLE = True
-except ImportError:
-    WORKFLOW_TRACKER_AVAILABLE = False
-    print("Warning: trading_workflow_tracker not found. Running without workflow tracking.")
+from trading_workflow_tracker import TradingWorkflowTracker, WorkflowPhase
 
 class WebDashboardService:
     """
@@ -44,7 +38,6 @@ class WebDashboardService:
     def __init__(self, db_path='./trading_system.db', port=5010):
         self.db_path = db_path
         self.port = port
-        self.service_version = "2.1.1"
         self.app = Flask(__name__)
         
         # Enable CORS
@@ -53,11 +46,8 @@ class WebDashboardService:
         # Initialize SocketIO for real-time updates
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
         
-        # Initialize workflow tracker if available
-        if WORKFLOW_TRACKER_AVAILABLE:
-            self.workflow_tracker = TradingWorkflowTracker(db_path=db_path)
-        else:
-            self.workflow_tracker = None
+        # Initialize workflow tracker
+        self.workflow_tracker = TradingWorkflowTracker(db_path=db_path)
         
         # Service registry for health checks
         self.services = {
@@ -104,15 +94,6 @@ class WebDashboardService:
         handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
         self.logger.addHandler(handler)
     
-    def get_db_connection(self):
-        """Get database connection with proper configuration"""
-        conn = sqlite3.connect(self.db_path, timeout=30)
-        conn.execute('PRAGMA journal_mode=WAL')
-        conn.execute('PRAGMA synchronous=NORMAL')
-        conn.execute('PRAGMA cache_size=-64000')
-        conn.execute('PRAGMA foreign_keys=ON')
-        return conn
-    
     def _setup_routes(self):
         """Setup main dashboard routes"""
         
@@ -140,7 +121,6 @@ class WebDashboardService:
             return jsonify({
                 "status": "healthy",
                 "service": "web-dashboard",
-                "version": self.service_version,
                 "timestamp": datetime.now().isoformat()
             })
         
@@ -154,7 +134,7 @@ class WebDashboardService:
                     'system_health': self._get_system_health(),
                     'active_positions': self._get_active_positions(),
                     'recent_trades': self._get_recent_trades(),
-                    'workflow_status': self._get_workflow_summary()
+                    'workflow_status': self.workflow_tracker.get_workflow_summary()
                 }
                 return jsonify(overview)
             except Exception as e:
@@ -257,74 +237,49 @@ class WebDashboardService:
             except Exception as e:
                 return jsonify({"error": f"Error starting cycle: {str(e)}"}), 500
         
-        # Fixed Schedule Status Endpoint (compatible with coordination service)
-        @self.app.route('/api/schedule_status')
+        @self.app.route('/api/schedule/status')
         def get_schedule_status():
-            """Get trading schedule status - calls coordination service"""
+            """Get trading schedule status"""
             try:
-                response = requests.get("http://localhost:5000/api/schedule_status", timeout=5)
+                response = requests.get("http://localhost:5000/schedule/status", timeout=5)
                 if response.status_code == 200:
                     return jsonify(response.json())
-            except Exception as e:
-                self.logger.warning(f"Failed to get schedule status from coordination service: {e}")
+            except:
+                pass
             
-            # Fallback response
             return jsonify({
                 "enabled": False,
                 "message": "Trading scheduler not available",
                 "next_run": None
             })
         
-        # Fixed Configure Schedule Endpoint (compatible with coordination service)
-        @self.app.route('/api/configure_schedule', methods=['POST'])
-        def configure_schedule():
-            """Configure trading schedule - calls coordination service"""
-            try:
-                response = requests.post("http://localhost:5000/api/configure_schedule", 
-                                       json=request.json, timeout=5)
-                if response.status_code == 200:
-                    return jsonify(response.json())
-                else:
-                    return jsonify({"error": "Failed to configure schedule"}), 500
-            except Exception as e:
-                self.logger.error(f"Error configuring schedule: {e}")
-                return jsonify({"error": str(e)}), 500
-        
-        # Fixed Workflow Status Endpoint (compatible with coordination service)
-        @self.app.route('/api/workflow_status')
-        def get_workflow_status():
-            """Get workflow status - calls coordination service"""
-            try:
-                response = requests.get("http://localhost:5000/api/workflow_status", timeout=5)
-                if response.status_code == 200:
-                    return jsonify(response.json())
-            except Exception as e:
-                self.logger.warning(f"Failed to get workflow status from coordination service: {e}")
-            
-            # Fallback to local workflow tracker if available
-            if self.workflow_tracker:
-                try:
-                    summary = self.workflow_tracker.get_workflow_summary()
-                    if summary:
-                        return jsonify(summary)
-                except Exception as e:
-                    self.logger.error(f"Error getting workflow summary: {e}")
-            
-            return jsonify({"status": "No workflow data available"})
-        
-        # Maintain backward compatibility endpoints
-        @self.app.route('/api/schedule/status')
-        def get_schedule_status_compat():
-            """Backward compatible schedule status endpoint"""
-            return get_schedule_status()
-        
         @self.app.route('/api/schedule/config', methods=['GET', 'POST'])
-        def schedule_config_compat():
-            """Backward compatible schedule config endpoint"""
+        def schedule_config():
+            """Get or set trading schedule configuration"""
             if request.method == 'GET':
-                return get_schedule_status()
-            else:
-                return configure_schedule()
+                try:
+                    response = requests.get("http://localhost:5000/schedule/config", timeout=5)
+                    if response.status_code == 200:
+                        return jsonify(response.json())
+                except:
+                    pass
+                
+                return jsonify({
+                    "enabled": False,
+                    "interval_minutes": 30,
+                    "market_hours_only": True,
+                    "start_time": "09:30",
+                    "end_time": "16:00"
+                })
+            
+            else:  # POST
+                try:
+                    response = requests.post("http://localhost:5000/schedule/config", 
+                                           json=request.json, timeout=5)
+                    if response.status_code == 200:
+                        return jsonify(response.json())
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
     
     def _setup_workflow_routes(self):
         """Setup workflow tracking routes"""
@@ -333,42 +288,27 @@ class WebDashboardService:
         def get_current_workflow():
             """Get current workflow status"""
             try:
-                # First try coordination service
-                response = requests.get("http://localhost:5000/api/workflow_status", timeout=5)
-                if response.status_code == 200:
-                    return jsonify(response.json())
-            except:
-                pass
-            
-            # Fallback to local workflow tracker
-            if self.workflow_tracker:
-                try:
-                    summary = self.workflow_tracker.get_workflow_summary()
-                    if not summary:
-                        history = self.workflow_tracker.get_workflow_history(limit=1)
-                        if history:
-                            return jsonify(history[0])
-                        return jsonify({"error": "No workflow data available"}), 404
-                    
-                    # Add completed phases count
-                    completed_phases = sum(
-                        1 for phase_data in summary.get("phases", {}).values()
-                        if phase_data.get("status") == "completed"
-                    )
-                    summary["completed_phases"] = completed_phases
-                    return jsonify(summary)
-                except Exception as e:
-                    self.logger.error(f"Error getting current workflow: {e}")
-                    return jsonify({"error": str(e)}), 500
-            
-            return jsonify({"error": "Workflow tracking not available"}), 404
+                summary = self.workflow_tracker.get_workflow_summary()
+                if not summary:
+                    history = self.workflow_tracker.get_workflow_history(limit=1)
+                    if history:
+                        return jsonify(history[0])
+                    return jsonify({"error": "No workflow data available"}), 404
+                
+                # Add completed phases count
+                completed_phases = sum(
+                    1 for phase_data in summary.get("phases", {}).values()
+                    if phase_data.get("status") == "completed"
+                )
+                summary["completed_phases"] = completed_phases
+                return jsonify(summary)
+            except Exception as e:
+                self.logger.error(f"Error getting current workflow: {e}")
+                return jsonify({"error": str(e)}), 500
         
         @self.app.route('/api/workflow/history')
         def get_workflow_history():
             """Get workflow execution history"""
-            if not self.workflow_tracker:
-                return jsonify({"error": "Workflow tracking not available"}), 404
-                
             try:
                 limit = int(request.args.get('limit', 10))
                 history = self.workflow_tracker.get_workflow_history(limit=limit)
@@ -380,9 +320,6 @@ class WebDashboardService:
         @self.app.route('/api/workflow/phase/<phase_name>')
         def get_phase_status(phase_name):
             """Get status of a specific phase"""
-            if not self.workflow_tracker:
-                return jsonify({"error": "Workflow tracking not available"}), 404
-                
             try:
                 phase_map = {
                     'initialization': WorkflowPhase.INITIALIZATION,
@@ -406,9 +343,6 @@ class WebDashboardService:
         @self.app.route('/api/workflow/metrics/phases')
         def get_phase_metrics():
             """Get performance metrics for all phases"""
-            if not self.workflow_tracker:
-                return jsonify({"error": "Workflow tracking not available"}), 404
-                
             try:
                 metrics = self.workflow_tracker.get_phase_performance_stats()
                 return jsonify(metrics)
@@ -419,9 +353,6 @@ class WebDashboardService:
         @self.app.route('/api/workflow/active')
         def get_active_workflows():
             """Get list of active workflows"""
-            if not self.workflow_tracker:
-                return jsonify({"error": "Workflow tracking not available"}), 404
-                
             try:
                 active = self.workflow_tracker.get_active_workflows()
                 return jsonify(active)
@@ -442,7 +373,7 @@ class WebDashboardService:
             emit('system_overview', {
                 'trading_stats': self._get_trading_stats(),
                 'system_health': self._get_system_health(),
-                'workflow_status': self._get_workflow_summary()
+                'workflow_status': self.workflow_tracker.get_workflow_summary()
             })
         
         @self.socketio.on('disconnect')
@@ -455,15 +386,6 @@ class WebDashboardService:
             """Subscribe to specific updates"""
             update_type = data.get('type', 'all')
             self.logger.info(f"Client subscribed to {update_type} updates")
-    
-    def _get_workflow_summary(self):
-        """Get workflow summary with fallback"""
-        if self.workflow_tracker:
-            try:
-                return self.workflow_tracker.get_workflow_summary()
-            except Exception as e:
-                self.logger.error(f"Error getting workflow summary: {e}")
-        return None
     
     def _get_system_health(self):
         """Check health of all trading services with caching"""
@@ -503,7 +425,7 @@ class WebDashboardService:
     
     def _get_trading_stats(self):
         """Get current trading statistics"""
-        conn = self.get_db_connection()
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
@@ -571,7 +493,7 @@ class WebDashboardService:
     
     def _get_active_positions(self):
         """Get current active positions"""
-        conn = self.get_db_connection()
+        conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -600,7 +522,7 @@ class WebDashboardService:
     
     def _get_recent_trades(self, limit=50):
         """Get recent trade history"""
-        conn = self.get_db_connection()
+        conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
@@ -627,7 +549,7 @@ class WebDashboardService:
     
     def _get_performance_metrics(self, days=7):
         """Get performance metrics over specified days"""
-        conn = self.get_db_connection()
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
@@ -685,7 +607,7 @@ class WebDashboardService:
     
     def _analyze_pattern_effectiveness(self):
         """Analyze effectiveness of different patterns"""
-        conn = self.get_db_connection()
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
@@ -740,32 +662,31 @@ class WebDashboardService:
                     'timestamp': datetime.now().isoformat()
                 })
         
-        # Check recent workflow failures if available
-        if self.workflow_tracker:
-            conn = self.get_db_connection()
-            cursor = conn.cursor()
+        # Check recent workflow failures
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) as failed_count
+                FROM workflow_metrics
+                WHERE status = 'failed'
+                AND created_at > datetime('now', '-1 hour')
+            ''')
             
-            try:
-                cursor.execute('''
-                    SELECT COUNT(*) as failed_count
-                    FROM workflow_metrics
-                    WHERE status = 'failed'
-                    AND created_at > datetime('now', '-1 hour')
-                ''')
-                
-                failed_count = cursor.fetchone()[0]
-                if failed_count > 3:
-                    alerts.append({
-                        'type': 'warning',
-                        'service': 'Workflow System',
-                        'message': f"{failed_count} workflow failures in the last hour",
-                        'timestamp': datetime.now().isoformat()
-                    })
-                
-            except Exception as e:
-                self.logger.error(f"Error checking alerts: {e}")
-            finally:
-                conn.close()
+            failed_count = cursor.fetchone()[0]
+            if failed_count > 3:
+                alerts.append({
+                    'type': 'warning',
+                    'service': 'Workflow System',
+                    'message': f"{failed_count} workflow failures in the last hour",
+                    'timestamp': datetime.now().isoformat()
+                })
+            
+        except Exception as e:
+            self.logger.error(f"Error checking alerts: {e}")
+        finally:
+            conn.close()
         
         return alerts
     
@@ -791,7 +712,7 @@ class WebDashboardService:
                     })
                     
                     # Broadcast workflow updates
-                    workflow_status = self._get_workflow_summary()
+                    workflow_status = self.workflow_tracker.get_workflow_summary()
                     if workflow_status:
                         self.socketio.emit('workflow_update', workflow_status)
                     
@@ -805,7 +726,7 @@ class WebDashboardService:
         self.monitor_thread.start()
         self.logger.info("Monitoring thread started")
     
-    def stop_monitoring_thread(self):
+    def stop_monitoring(self):
         """Stop monitoring thread"""
         self.stop_monitoring.set()
         if self.monitor_thread:
@@ -838,7 +759,7 @@ class WebDashboardService:
     
     def run(self):
         """Run the dashboard service"""
-        self.logger.info(f"Starting Web Dashboard Service v{self.service_version} on port {self.port}")
+        self.logger.info(f"Starting Web Dashboard Service v2.1.0 on port {self.port}")
         
         # Register with coordination service
         threading.Thread(target=self._register_with_coordination, daemon=True).start()
@@ -856,14 +777,14 @@ class WebDashboardService:
             )
         except KeyboardInterrupt:
             self.logger.info("Shutting down...")
-            self.stop_monitoring_thread()
+            self.stop_monitoring()
         except Exception as e:
             self.logger.error(f"Error running service: {e}")
-            self.stop_monitoring_thread()
+            self.stop_monitoring()
             raise
 
 
-# Main System Health Dashboard HTML (keeping the same as before)
+# Main System Health Dashboard HTML
 MAIN_DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html>
@@ -1099,7 +1020,7 @@ MAIN_DASHBOARD_HTML = '''
 </html>
 '''
 
-# Enhanced Trading Dashboard HTML (keeping the same as before but with fixed endpoints)
+# Enhanced Trading Dashboard HTML
 TRADING_DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html>
@@ -1754,7 +1675,7 @@ TRADING_DASHBOARD_HTML = '''
 
         async function updateScheduleStatus() {
             try {
-                const response = await axios.get('/api/schedule_status');
+                const response = await axios.get('/api/schedule/status');
                 const status = response.data;
                 
                 const scheduleDiv = document.getElementById('schedule-status');
@@ -1777,7 +1698,7 @@ TRADING_DASHBOARD_HTML = '''
 
         async function showScheduleConfig() {
             try {
-                const response = await axios.get('/api/schedule_status');
+                const response = await axios.get('/api/schedule/config');
                 const config = response.data;
                 
                 document.getElementById('scheduleEnabled').checked = config.enabled || false;
@@ -1802,7 +1723,7 @@ TRADING_DASHBOARD_HTML = '''
             };
             
             try {
-                await axios.post('/api/configure_schedule', config);
+                await axios.post('/api/schedule/config', config);
                 scheduleModal.hide();
                 updateScheduleStatus();
                 alert('Schedule configuration saved successfully!');

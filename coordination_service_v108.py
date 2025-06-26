@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
 Name of Service: TRADING SYSTEM COORDINATION SERVICE
-Filename: coordination_service_v105.py
-Version: 1.0.5
+Filename: coordination_service_v108.py
+Version: 1.0.8
 Last Updated: 2025-06-26
 REVISION HISTORY:
-v1.0.5 (2025-06-26) - Path standardization and architecture compliance
-  - Updated database path to ./trading_system.db (current directory)
-  - Updated logs path to ./logs/ (current directory)
-  - Implemented database utilities layer with retry logic
-  - Enhanced service registration with persistent storage
-  - Added comprehensive error handling and recovery
-  - Standardized to Architecture v3.1.2 patterns
-  - Added proper database connection management with WAL mode
-  - Implemented workflow tracking integration
+v1.0.8 (2025-06-26) - Enhanced version combining v107 features with database improvements
+  - Retained all critical endpoints from v107: /force_register_all, /latest_cycle, /schedule/config
+  - Added comprehensive database retry logic with exponential backoff
+  - Implemented WAL mode configuration for better concurrent access
+  - Enhanced workflow tracking with events and metrics tables
+  - Added database schema validation on startup
+  - Improved error handling and recovery mechanisms
+  - Maintained backward compatibility with dual registration endpoints
+  - Combined robust path handling from v107 with database utilities from architecture
+v1.0.7 (2025-06-23) - Fixed endpoint naming for web dashboard compatibility
+v1.0.6 (2025-06-22) - Made paths environment-agnostic, works in any directory
+v1.0.5 (2025-06-22) - Fixed schema mismatch: use host/port from service_coordination table
 v1.0.4 (2025-06-20) - Fixed table name mismatch (use service_coordination not service_registry)
 v1.0.3 (2025-06-19) - Added trading schedule endpoints for automated trading
 v1.0.2 (2025-06-19) - Enhanced with persistent registration and auto-registration
@@ -22,18 +25,18 @@ v1.0.0 (2025-06-11) - Initial release with standardized authentication
 
 DESCRIPTION:
 Central orchestrator for all trading system services implementing Enhanced Hybrid
-Microservices Architecture v3.1.2. Manages service discovery, workflow coordination,
-and health monitoring with robust database operations and automatic retry logic.
+Microservices Architecture v3.1.2. Combines robust database operations with
+comprehensive workflow tracking and maintains full backward compatibility.
 
 Key Features:
-- Service registry with health monitoring
-- Trading cycle orchestration with workflow tracking
-- Automated trading scheduling
-- Database operations with retry logic and connection pooling
+- Service registry with health monitoring and force registration
+- Trading cycle orchestration with comprehensive workflow tracking
+- Advanced scheduled trading with flexible configuration
+- Database operations with automatic retry logic and WAL mode
 - Comprehensive error handling and recovery mechanisms
-- Integration with all 8 trading services
+- Full backward compatibility with existing endpoints
 
-Platform: Current directory with SQLite database
+Platform: Environment-agnostic with robust path handling
 Database: ./trading_system.db with WAL mode for concurrent access
 Port: 5000 (coordination service)
 """
@@ -49,19 +52,24 @@ import uuid
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from typing import Dict, List, Optional
-
-# Current directory configuration
-DATABASE_PATH = './trading_system.db'
-LOGS_PATH = './logs'
+from pathlib import Path
 
 # Version constant
-VERSION = "1.0.5"
+VERSION = "1.0.8"
+
+# Try to import database utilities (maintain compatibility)
+try:
+    from database_utils import DatabaseManager, DatabaseServiceMixin as ExternalDBMixin
+    USE_EXTERNAL_DB_UTILS = True
+except ImportError:
+    USE_EXTERNAL_DB_UTILS = False
+    print("Warning: database_utils not found. Using built-in database utilities.")
 
 class DatabaseServiceMixin:
-    """Database operations mixin with automatic retry logic"""
+    """Built-in database operations mixin with automatic retry logic"""
     
     def get_db_connection(self, retries=5, timeout=30):
-        """Get database connection with retry logic"""
+        """Get database connection with retry logic and WAL mode"""
         for attempt in range(retries):
             try:
                 conn = sqlite3.connect(self.db_path, timeout=timeout)
@@ -113,64 +121,33 @@ class DatabaseServiceMixin:
                 else:
                     self.logger.error(f"Query failed after {retries} attempts: {e}")
                     raise
-    
-    def bulk_insert_with_transaction(self, table, records, retries=5):
-        """Bulk insert with transaction management and retry logic"""
-        if not records:
-            return 0
-            
-        for attempt in range(retries):
-            try:
-                conn = self.get_db_connection()
-                cursor = conn.cursor()
-                
-                # Begin transaction
-                cursor.execute("BEGIN TRANSACTION")
-                
-                # Prepare insert statement based on first record
-                first_record = records[0]
-                columns = list(first_record.keys())
-                placeholders = ', '.join(['?' for _ in columns])
-                insert_sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
-                
-                # Execute batch insert
-                for record in records:
-                    values = [record[col] for col in columns]
-                    cursor.execute(insert_sql, values)
-                
-                conn.commit()
-                inserted_count = len(records)
-                conn.close()
-                
-                self.logger.info(f"Bulk inserted {inserted_count} records into {table}")
-                return inserted_count
-                
-            except sqlite3.OperationalError as e:
-                if "database is locked" in str(e) and attempt < retries - 1:
-                    wait_time = (2 ** attempt) * 0.1
-                    self.logger.warning(f"Bulk insert failed due to lock, retrying in {wait_time}s")
-                    time.sleep(wait_time)
-                else:
-                    self.logger.error(f"Bulk insert failed after {retries} attempts: {e}")
-                    raise
-            except Exception as e:
-                self.logger.error(f"Bulk insert failed: {e}")
-                raise
 
 class CoordinationService(DatabaseServiceMixin):
-    def __init__(self, port=5000, db_path=DATABASE_PATH):
+    def __init__(self, port=5000, db_path=None):
         self.app = Flask(__name__)
         self.port = port
-        self.db_path = db_path
-        self.service_name = "coordination"
+        
+        # Environment-agnostic paths (from v107)
+        if db_path is None:
+            self.db_path = str(Path('./trading_system.db').resolve())
+        else:
+            self.db_path = str(Path(db_path).resolve())
+            
         self.logger = self._setup_logging()
+        
+        # Initialize database utilities if available
+        if USE_EXTERNAL_DB_UTILS:
+            self.db_manager = DatabaseManager(self.db_path)
+            self.logger.info("Using external database utilities")
+        else:
+            self.logger.info("Using built-in database utilities")
         
         # Service registry - in memory for fast access
         self.service_registry = {}
         
-        # Trading schedule configuration
+        # Trading schedule configuration (from v107)
         self.schedule_config = {
-            "enabled": False,
+            "enabled": True,
             "interval_minutes": 30,
             "market_hours_only": True,
             "start_time": "09:30",
@@ -184,18 +161,19 @@ class CoordinationService(DatabaseServiceMixin):
         # Service port mapping (per Architecture v3.1.2)
         self.service_ports = {
             "coordination": 5000,
-            "security_scanner": 5001,
-            "pattern_analysis": 5002,
-            "technical_analysis": 5003,
-            "paper_trading": 5005,
-            "pattern_recognition": 5006,
-            "news_service": 5008,
+            "scanner": 5001,
+            "pattern": 5002,
+            "technical": 5003,
+            "trading": 5005,
+            "pattern_rec": 5006,
+            "news": 5008,
             "reporting": 5009,
-            "web_dashboard": 5010
+            "dashboard": 5010
         }
         
         # Initialize system
         self._validate_database()
+        self._init_database()
         self._load_schedule_config()
         self._setup_routes()
         self._load_service_registry()
@@ -206,15 +184,15 @@ class CoordinationService(DatabaseServiceMixin):
         self.logger.info(f"Port: {self.port}")
         
     def _setup_logging(self):
-        """Setup logging with current directory paths"""
-        # Ensure logs directory exists
-        os.makedirs(LOGS_PATH, exist_ok=True)
-        
+        """Setup logging with environment-agnostic paths"""
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('CoordinationService')
         
-        # File handler for service logs
-        handler = logging.FileHandler(f'{LOGS_PATH}/coordination_service.log')
+        # Create logs directory if it doesn't exist
+        log_dir = Path('./logs')
+        log_dir.mkdir(exist_ok=True)
+        
+        handler = logging.FileHandler(log_dir / 'coordination_service.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -243,17 +221,114 @@ class CoordinationService(DatabaseServiceMixin):
             
             missing_tables = set(required_tables) - set(existing_tables)
             if missing_tables:
-                self.logger.error(f"Missing required tables: {missing_tables}")
-                self.logger.error("Please run database_migration_v106.py to create missing tables")
-                raise Exception(f"Missing tables: {missing_tables}")
+                self.logger.warning(f"Some tables missing, will create: {missing_tables}")
             
             conn.close()
-            self.logger.info("Database validation successful")
+            self.logger.info("Database validation completed")
             
         except Exception as e:
             self.logger.error(f"Database validation failed: {e}")
             raise
     
+    def _init_database(self):
+        """Initialize database tables (maintains v107 compatibility)"""
+        try:
+            conn = self.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Create service_coordination table (matching database_migration.py)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS service_coordination (
+                    service_name TEXT PRIMARY KEY,
+                    host TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    last_heartbeat TIMESTAMP,
+                    start_time TIMESTAMP,
+                    metadata TEXT
+                )
+            ''')
+            
+            # Create trading_schedule_config table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS trading_schedule_config (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    config TEXT NOT NULL
+                )
+            ''')
+            
+            # Create trading_cycles table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS trading_cycles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cycle_id TEXT UNIQUE NOT NULL,
+                    status TEXT NOT NULL,
+                    start_time TIMESTAMP,
+                    end_time TIMESTAMP,
+                    securities_scanned INTEGER DEFAULT 0,
+                    patterns_found INTEGER DEFAULT 0,
+                    trades_executed INTEGER DEFAULT 0,
+                    error_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Create workflow tracking tables (enhanced from my v105)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS workflow_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cycle_id TEXT NOT NULL,
+                    phase TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    start_time TEXT,
+                    end_time TEXT,
+                    duration_seconds REAL,
+                    items_processed INTEGER DEFAULT 0,
+                    items_succeeded INTEGER DEFAULT 0,
+                    items_failed INTEGER DEFAULT 0,
+                    error_message TEXT,
+                    retry_count INTEGER DEFAULT 0,
+                    metadata TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS workflow_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cycle_id TEXT NOT NULL,
+                    phase TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    event_data TEXT,
+                    timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS workflow_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cycle_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    start_time TEXT NOT NULL,
+                    end_time TEXT,
+                    total_duration_seconds REAL,
+                    securities_scanned INTEGER DEFAULT 0,
+                    patterns_detected INTEGER DEFAULT 0,
+                    signals_generated INTEGER DEFAULT 0,
+                    trades_executed INTEGER DEFAULT 0,
+                    success_rate REAL DEFAULT 0.0,
+                    error_count INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.commit()
+            conn.close()
+            self.logger.info("Database tables initialized")
+            
+        except Exception as e:
+            self.logger.error(f"Error initializing database: {e}")
+        
     def _load_service_registry(self):
         """Load service registry from database on startup"""
         try:
@@ -263,11 +338,11 @@ class CoordinationService(DatabaseServiceMixin):
             
             for row in results:
                 self.service_registry[row[0]] = {
+                    'url': f"http://{row[1]}:{row[2]}",
                     'host': row[1],
                     'port': row[2],
                     'status': row[3],
-                    'last_heartbeat': row[4],
-                    'url': f"http://{row[1]}:{row[2]}"
+                    'last_heartbeat': row[4]
                 }
                 
             self.logger.info(f"Loaded {len(self.service_registry)} services from database")
@@ -302,7 +377,7 @@ class CoordinationService(DatabaseServiceMixin):
             self.logger.error(f"Error saving schedule config: {e}")
             
     def _setup_routes(self):
-        """Setup Flask routes"""
+        """Setup Flask routes (combining v107 endpoints with enhanced functionality)"""
         
         @self.app.route('/health', methods=['GET'])
         def health():
@@ -314,7 +389,9 @@ class CoordinationService(DatabaseServiceMixin):
                 "database": "connected",
                 "services_registered": len(self.service_registry)
             })
-            
+        
+        # Support both /register and /register_service for compatibility (from v107)
+        @self.app.route('/register', methods=['POST'])
         @self.app.route('/register_service', methods=['POST'])
         def register_service():
             """Register a service with the coordinator"""
@@ -333,11 +410,11 @@ class CoordinationService(DatabaseServiceMixin):
             
             # Store in memory
             self.service_registry[service_name] = {
+                'url': f"http://{host}:{port}",
                 'host': host,
                 'port': port,
                 'status': 'active',
-                'last_heartbeat': datetime.now().isoformat(),
-                'url': f"http://{host}:{port}"
+                'last_heartbeat': datetime.now().isoformat()
             }
             
             # Persist to database
@@ -349,92 +426,74 @@ class CoordinationService(DatabaseServiceMixin):
                 "service": service_name,
                 "url": f"http://{host}:{port}"
             })
+        
+        @self.app.route('/force_register_all', methods=['POST'])
+        def force_register_all():
+            """Force registration of all known services (from v107)"""
+            known_services = {
+                "coordination": 5000,
+                "scanner": 5001,
+                "pattern": 5002,
+                "technical": 5003,
+                "trading": 5005,
+                "pattern_rec": 5006,
+                "news": 5008,
+                "reporting": 5009,
+                "dashboard": 5010
+            }
             
-        @self.app.route('/service_status', methods=['GET'])
-        def service_status():
-            """Get comprehensive service status"""
-            comprehensive_status = []
-            
-            for service_name, expected_port in self.service_ports.items():
-                if service_name in self.service_registry:
-                    # Service is registered
-                    info = self.service_registry[service_name]
-                    is_healthy = self._check_service_health(service_name, info['port'])
-                    
-                    comprehensive_status.append({
-                        'name': service_name,
-                        'host': info['host'],
-                        'port': info['port'],
-                        'url': info['url'],
-                        'registered': True,
-                        'status': 'active' if is_healthy else 'inactive',
-                        'healthy': is_healthy,
-                        'last_heartbeat': info.get('last_heartbeat', 'unknown')
-                    })
-                else:
-                    # Not registered, check if it's running
-                    is_healthy = self._check_service_health(service_name, expected_port)
-                    
-                    # Auto-register if healthy
-                    if is_healthy:
-                        self.service_registry[service_name] = {
-                            'host': 'localhost',
-                            'port': expected_port,
-                            'status': 'active',
-                            'last_heartbeat': datetime.now().isoformat(),
-                            'url': f"http://localhost:{expected_port}"
-                        }
-                        self._persist_service_registration(service_name, 'localhost', expected_port)
-                        
-                    comprehensive_status.append({
-                        'name': service_name,
+            registered = []
+            for service_name, port in known_services.items():
+                if self._check_service_health(service_name, port):
+                    self.service_registry[service_name] = {
+                        'url': f"http://localhost:{port}",
                         'host': 'localhost',
-                        'port': expected_port,
-                        'url': f"http://localhost:{expected_port}",
-                        'registered': is_healthy,
-                        'status': 'active' if is_healthy else 'not_found',
-                        'healthy': is_healthy,
-                        'last_heartbeat': datetime.now().isoformat() if is_healthy else None
-                    })
-                        
-            return jsonify(comprehensive_status)
+                        'port': port,
+                        'status': 'active',
+                        'last_heartbeat': datetime.now().isoformat()
+                    }
+                    self._persist_service_registration(service_name, 'localhost', port)
+                    registered.append(service_name)
             
-        @self.app.route('/start_trading_cycle', methods=['POST'])
-        def start_trading_cycle():
-            """Start a complete trading cycle"""
-            cycle_id = f"cycle_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            return jsonify({
+                "status": "completed",
+                "registered": registered,
+                "count": len(registered)
+            })
             
-            try:
-                # Execute trading workflow
-                results = self._execute_trading_workflow(cycle_id)
-                
-                # Update last run time
-                self.schedule_config['last_run'] = datetime.now().isoformat()
-                if self.schedule_config['enabled']:
-                    self.schedule_config['next_run'] = (
-                        datetime.now() + timedelta(minutes=self.schedule_config['interval_minutes'])
-                    ).isoformat()
-                self._save_schedule_config()
-                
-                return jsonify(results)
-                
-            except Exception as e:
-                self.logger.error(f"Trading cycle failed: {e}")
-                
-                # Record failed cycle
-                self._record_trading_cycle(cycle_id, 'failed', error_count=1)
-                
-                return jsonify({
-                    "error": str(e), 
-                    "cycle_id": cycle_id,
-                    "status": "failed"
-                }), 500
-                
         @self.app.route('/schedule/status', methods=['GET'])
         def get_schedule_status():
             """Get current trading schedule status"""
             return jsonify(self.schedule_config)
             
+        @self.app.route('/schedule/config', methods=['GET', 'POST'])
+        def schedule_config():
+            """Get or set trading schedule configuration (from v107)"""
+            if request.method == 'GET':
+                return jsonify(self.schedule_config)
+            
+            else:  # POST - Update configuration
+                try:
+                    config = request.json
+                    
+                    # Update configuration
+                    self.schedule_config.update(config)
+                    
+                    # Save to database
+                    self._save_schedule_config()
+                    
+                    self.logger.info(f"Schedule configuration updated: {config}")
+                    
+                    return jsonify({
+                        "status": "success",
+                        "message": "Schedule configuration updated",
+                        "config": self.schedule_config
+                    })
+                    
+                except Exception as e:
+                    self.logger.error(f"Error updating schedule config: {e}")
+                    return jsonify({"error": str(e)}), 500
+
         @self.app.route('/schedule/enable', methods=['POST'])
         def enable_schedule():
             """Enable scheduled trading"""
@@ -468,6 +527,127 @@ class CoordinationService(DatabaseServiceMixin):
             self._save_schedule_config()
             
             return jsonify({"message": "Trading schedule disabled"})
+        
+        @self.app.route('/service_status', methods=['GET'])
+        def service_status():
+            """Get comprehensive service status (v107 format)"""
+            comprehensive_status = {}
+            
+            # Known services
+            all_services = {
+                "coordination": 5000,
+                "scanner": 5001,
+                "pattern": 5002,
+                "technical": 5003,
+                "trading": 5005,
+                "pattern_rec": 5006,
+                "news": 5008,
+                "reporting": 5009,
+                "dashboard": 5010
+            }
+            
+            for service_name, default_port in all_services.items():
+                if service_name in self.service_registry:
+                    # Service is registered
+                    info = self.service_registry[service_name]
+                    is_healthy = self._check_service_health(service_name, info['port'])
+                    
+                    comprehensive_status[service_name] = {
+                        'name': service_name.replace('_', ' ').title(),
+                        'url': info['url'],
+                        'port': info['port'],
+                        'registered': True,
+                        'status': 'active' if is_healthy else 'inactive',
+                        'healthy': is_healthy,
+                        'last_heartbeat': info.get('last_heartbeat', 'unknown')
+                    }
+                else:
+                    # Not registered, check if it's running
+                    is_healthy = self._check_service_health(service_name, default_port)
+                    
+                    # Auto-register if healthy
+                    if is_healthy:
+                        self.service_registry[service_name] = {
+                            'url': f"http://localhost:{default_port}",
+                            'host': 'localhost',
+                            'port': default_port,
+                            'status': 'active',
+                            'last_heartbeat': datetime.now().isoformat()
+                        }
+                        self._persist_service_registration(service_name, 'localhost', default_port)
+                        
+                    comprehensive_status[service_name] = {
+                        'name': service_name.replace('_', ' ').title(),
+                        'url': f"http://localhost:{default_port}",
+                        'port': default_port,
+                        'registered': is_healthy,
+                        'status': 'active' if is_healthy else 'not_found',
+                        'healthy': is_healthy,
+                        'last_heartbeat': datetime.now().isoformat() if is_healthy else None
+                    }
+                        
+            return jsonify(comprehensive_status)
+            
+        @self.app.route('/start_trading_cycle', methods=['POST'])
+        def start_trading_cycle():
+            """Start a complete trading cycle with enhanced tracking"""
+            cycle_id = f"cycle_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            
+            try:
+                # Execute trading workflow
+                results = self._execute_trading_workflow(cycle_id)
+                
+                # Update last run time
+                self.schedule_config['last_run'] = datetime.now().isoformat()
+                if self.schedule_config['enabled']:
+                    self.schedule_config['next_run'] = (
+                        datetime.now() + timedelta(minutes=self.schedule_config['interval_minutes'])
+                    ).isoformat()
+                self._save_schedule_config()
+                
+                return jsonify(results)
+                
+            except Exception as e:
+                self.logger.error(f"Trading cycle failed: {e}")
+                
+                # Record failed cycle
+                self._record_trading_cycle(cycle_id, 'failed', error_count=1)
+                
+                return jsonify({
+                    "error": str(e), 
+                    "cycle_id": cycle_id,
+                    "status": "failed"
+                }), 500
+        
+        @self.app.route('/latest_cycle', methods=['GET'])
+        def latest_cycle():
+            """Get latest trading cycle information (from v107)"""
+            try:
+                results = self.execute_with_retry('''
+                    SELECT cycle_id, status, start_time, end_time, 
+                           securities_scanned, patterns_found, trades_executed
+                    FROM trading_cycles
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ''')
+                
+                if results:
+                    row = results[0]
+                    return jsonify({
+                        'cycle_id': row[0],
+                        'status': row[1],
+                        'start_time': row[2],
+                        'end_time': row[3],
+                        'securities_scanned': row[4],
+                        'patterns_found': row[5],
+                        'trades_executed': row[6]
+                    })
+                else:
+                    return jsonify({'status': 'No cycles found'})
+                    
+            except Exception as e:
+                self.logger.error(f"Error getting latest cycle: {e}")
+                return jsonify({'error': str(e)}), 500
         
         @self.app.route('/trading_cycles', methods=['GET'])
         def get_trading_cycles():
@@ -546,7 +726,13 @@ class CoordinationService(DatabaseServiceMixin):
             scan_results = self._execute_security_scan()
             
             if scan_results['success']:
-                securities = scan_results['data'].get('securities', [])
+                # Handle both list and dict responses (from v107)
+                scan_data = scan_results['data']
+                if isinstance(scan_data, list):
+                    securities = scan_data
+                else:
+                    securities = scan_data.get('securities', [])
+                    
                 results['securities_processed'] = len(securities)
                 results['steps'].append({
                     "step": "security_scan",
@@ -560,7 +746,8 @@ class CoordinationService(DatabaseServiceMixin):
                 # Step 2: Pattern Analysis for each security
                 all_patterns = []
                 for security in securities[:5]:  # Limit to top 5 for performance
-                    pattern_results = self._execute_pattern_analysis(security['symbol'])
+                    symbol = security['symbol']
+                    pattern_results = self._execute_pattern_analysis(symbol)
                     if pattern_results['success']:
                         security['patterns'] = pattern_results['data']
                         all_patterns.extend(pattern_results['data'].get('patterns', []))
@@ -621,11 +808,11 @@ class CoordinationService(DatabaseServiceMixin):
     def _execute_security_scan(self) -> Dict:
         """Execute security scanning via security scanner service"""
         try:
-            scanner_info = self.service_registry.get('security_scanner')
+            scanner_info = self.service_registry.get('scanner')
             if not scanner_info:
                 return {"success": False, "error": "Security scanner not registered"}
             
-            response = requests.post(f"{scanner_info['url']}/scan_securities", timeout=30)
+            response = requests.get(f"{scanner_info['url']}/scan_securities", timeout=30)
             if response.status_code == 200:
                 return {"success": True, "data": response.json()}
             else:
@@ -637,7 +824,7 @@ class CoordinationService(DatabaseServiceMixin):
     def _execute_pattern_analysis(self, symbol: str) -> Dict:
         """Execute pattern analysis for a specific symbol"""
         try:
-            pattern_info = self.service_registry.get('pattern_analysis')
+            pattern_info = self.service_registry.get('pattern')
             if not pattern_info:
                 return {"success": False, "error": "Pattern analysis service not registered"}
             
@@ -653,7 +840,7 @@ class CoordinationService(DatabaseServiceMixin):
     def _execute_technical_analysis(self, security: Dict) -> Dict:
         """Execute technical analysis and signal generation"""
         try:
-            tech_info = self.service_registry.get('technical_analysis')
+            tech_info = self.service_registry.get('technical')
             if not tech_info:
                 return {"success": False, "error": "Technical analysis service not registered"}
             
@@ -673,7 +860,7 @@ class CoordinationService(DatabaseServiceMixin):
     def _execute_trades(self, signals: List) -> Dict:
         """Execute trades via paper trading service"""
         try:
-            trading_info = self.service_registry.get('paper_trading')
+            trading_info = self.service_registry.get('trading')
             if not trading_info:
                 return {"success": False, "error": "Paper trading service not registered"}
             
@@ -811,7 +998,6 @@ class CoordinationService(DatabaseServiceMixin):
         """Run the coordination service"""
         self.logger.info(f"Starting Coordination Service v{VERSION} on port {self.port}")
         self.logger.info(f"Database: {self.db_path}")
-        self.logger.info(f"Logs: {LOGS_PATH}")
         self.logger.info(f"Services registered: {len(self.service_registry)}")
         
         self.app.run(host='0.0.0.0', port=self.port, debug=False)
